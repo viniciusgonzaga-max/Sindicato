@@ -705,11 +705,11 @@ footer.note{color:#9AA3B2;background:transparent;border:0;}
 
 /* QTD. DE PARCELAS — compacto */
 #tab-regras .rules-form-grid #rParcelas{
-  width:85px !important;
-  min-width:85px !important;
-  max-width:85px !important;
-  padding-left:8px !important;
-  padding-right:8px !important;
+  width:55px !important;
+  min-width:55px !important;
+  max-width:55px !important;
+  padding-left:0px !important;
+  padding-right:0px !important;
 }
 
 /* Campo de meses */
@@ -1097,24 +1097,12 @@ async function fetchJson(url){
     cache: 'no-store',
     redirect: 'follow'
   });
-
-  if(!response.ok){
-    throw new Error('HTTP ' + response.status);
-  }
-
+  if(!response.ok) throw new Error('HTTP ' + response.status);
   const contentType = (response.headers.get('content-type') || '').toLowerCase();
-
-  if(contentType.includes('application/json')){
-    return await response.json();
-  }
-
+  if(contentType.includes('application/json')) return await response.json();
   const text = await response.text();
-
-  try{
-    return JSON.parse(text);
-  }catch(_){
-    throw new Error('O App Web não retornou JSON válido.');
-  }
+  try { return JSON.parse(text); }
+  catch(_) { throw new Error('O App Web não retornou JSON válido.'); }
 }
 
 // Carrega somente os colaboradores.
@@ -1122,94 +1110,49 @@ async function fetchJson(url){
 // exclusiva para exibi-los.
 async function loadBasesFromApi(){
   const btn = document.getElementById('btnRefreshAll');
-
   try {
-    if(btn){
-      btn.disabled = true;
-      btn.textContent = 'Carregando...';
-    }
+    if(btn){ btn.disabled=true; btn.textContent='Carregando...'; }
 
-    // Uma única chamada ao App Web. O retorno esperado é:
-    // { colaboradores: [...], sindicatos: [...], regras: [...], oposicoes: [...] }
-    const payload = await fetchJson(BASE_COLABORADORES_API);
+    // Sempre consulta a planilha. O parâmetro _ quebra qualquer cache de URL.
+    const separador = BASE_COLABORADORES_API.includes('?') ? '&' : '?';
+    const urlAtualizada = BASE_COLABORADORES_API + separador + '_=' + Date.now();
+
+    const payload = await fetchJson(urlAtualizada);
 
     const colaboradoresRows = normalizeApiPayload(payload?.colaboradores ?? []);
     const sindicatosRows = normalizeApiPayload(payload?.sindicatos ?? []);
     const regrasRows = normalizeApiPayload(payload?.regras ?? []);
     const oposicoesRows = normalizeApiPayload(payload?.oposicoes ?? []);
 
-    const colaboradores = importColaboradores(colaboradoresRows);
-    const sindicatos = importSindicatosBase(sindicatosRows);
-    const regras = importRegrasFromApi(regrasRows);
-    const oposicoes = importOposFromApi(oposicoesRows);
-
-    if(!colaboradores.length){
-      throw new Error('Nenhum colaborador retornado pelo App Web.');
-    }
-
-    if(!sindicatos.length){
-      throw new Error('Nenhum sindicato retornado pelo App Web.');
-    }
-
-    DB.colaboradores = colaboradores;
-    DB.sindicatosBase = sindicatos;
-
-    if(regras.length || Array.isArray(payload?.regras)){
-      DB.regras = regras;
-    }
-
-    if(oposicoes.length || Array.isArray(payload?.oposicoes)){
-      DB.oposicoes = oposicoes;
-    }
-
-    await Promise.all([
-      Store.set('colaboradores', DB.colaboradores),
-      Store.set('sindicatosBase', DB.sindicatosBase),
-      Store.set('regras', DB.regras),
-      Store.set('oposicoes', DB.oposicoes)
-    ]);
+    DB.colaboradores = importColaboradores(colaboradoresRows);
+    DB.sindicatosBase = importSindicatosBase(sindicatosRows);
+    DB.regras = importRegrasFromApi(regrasRows);
+    DB.oposicoes = importOposFromApi(oposicoesRows);
 
     renderRegras();
     renderOpos();
     refreshSelectors();
 
-    console.log(
-      'Dados atualizados:',
-      DB.colaboradores.length + ' colaboradores,',
-      DB.sindicatosBase.length + ' registros de sindicatos.'
-    );
+    // Recalcula usando os dados recém-lidos da planilha.
+    if(typeof calcular === 'function') calcular();
 
+    console.log('Dados carregados diretamente da planilha:', {
+      colaboradores: DB.colaboradores.length,
+      sindicatos: DB.sindicatosBase.length,
+      regras: DB.regras.length,
+      oposicoes: DB.oposicoes.length
+    });
   } catch(e) {
     console.error('Erro ao atualizar dados:', e);
+    alert('Erro ao carregar os dados da planilha:\n\n' + e.message);
   } finally {
-    if(btn){
-      btn.disabled = false;
-      btn.textContent = '↻ Atualizar dados';
-    }
+    if(btn){ btn.disabled=false; btn.textContent='↻ Atualizar dados'; }
   }
 }
-// ---------- STORAGE ----------
-const Store = {
-  async get(key){
-    try{
-      if(window.storage){
-        const r = await window.storage.get(key,false);
-        return r ? JSON.parse(r.value) : null;
-      }
-      const v = localStorage.getItem('sind_'+key);
-      return v ? JSON.parse(v) : null;
-    }catch(e){ return null; }
-  },
-  async set(key,value){
-    try{
-      if(window.storage){
-        await window.storage.set(key, JSON.stringify(value), false);
-      } else {
-        localStorage.setItem('sind_'+key, JSON.stringify(value));
-      }
-    }catch(e){ console.error('storage error',e); }
-  }
-};
+
+// ---------- STORAGE REMOVIDO ----------
+// Os dados nunca são lidos de localStorage/window.storage.
+// A fonte oficial é sempre o GET do Apps Script.
 
 const DB = { colaboradores:[], sindicatosBase:[], regras:[], oposicoes:[] };
 let ultimoResultado = [];
@@ -1724,7 +1667,6 @@ window.__delRegra = async function(i){
     await excluirRegraDaPlanilha(regra.sindicato);
 
     DB.regras.splice(i,1);
-    await Store.set('regras', DB.regras);
 
     if(regraEmEdicao === i){
       cancelarEdicaoRegra();
@@ -1762,7 +1704,6 @@ window.__delOpos = async function(i){
     await excluirOposicaoDaPlanilha(oposicao);
 
     DB.oposicoes.splice(i,1);
-    await Store.set('oposicoes', DB.oposicoes);
     renderOpos();
 
   }catch(e){
@@ -2090,7 +2031,6 @@ document.getElementById('btnAddRegra').addEventListener('click', async ()=>{
       }
     }
 
-    await Store.set('regras', DB.regras);
 
     cancelarEdicaoRegra();
     renderRegras();
@@ -2189,7 +2129,6 @@ document.getElementById('btnAddOpos').addEventListener('click', async ()=>{
       DB.oposicoes.push(oposicao);
     }
 
-    await Store.set('oposicoes', DB.oposicoes);
 
     renderOpos();
 
@@ -2276,7 +2215,6 @@ document.getElementById('btnImportOpos').addEventListener('click', async ()=>{
 
     });
 
-    await Store.set('oposicoes', DB.oposicoes);
 
     renderOpos();
 
@@ -2315,21 +2253,21 @@ document.getElementById('btnExportar').addEventListener('click', exportCSV);
 
 // ---------- INIT ----------
 (async function init(){
-  // Carrega rapidamente a última versão local para o painel não ficar vazio.
-  DB.colaboradores = (await Store.get('colaboradores')) || [];
-  DB.sindicatosBase = (await Store.get('sindicatosBase')) || [];
-  DB.regras = (await Store.get('regras')) || [];
-  DB.oposicoes = (await Store.get('oposicoes')) || [];
-
+  // Não existe carregamento de cache/localStorage.
+  // Ao abrir a página, consulta diretamente a planilha via GET.
   renderRegras();
   renderOpos();
   document.getElementById('headerAno').textContent = document.getElementById('cAno').value;
   cancelarEdicaoRegra();
 
-  // Depois atualiza os dados oficiais do App Web.
-  // Colaboradores e sindicatos são buscados em paralelo.
   await loadBasesFromApi();
 })();
+
+// Botão de atualização: faz um novo GET na planilha.
+const btnRefreshAll = document.getElementById('btnRefreshAll');
+if(btnRefreshAll){
+  // O listener já é registrado no bloco EVENTS: DADOS.
+}
 
 })();
 </script>
