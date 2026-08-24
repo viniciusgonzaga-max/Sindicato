@@ -1,0 +1,2337 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel de Desconto Sindical</title>
+<style>
+  :root{
+    --bg:#F4F2EC;
+    --surface:#FFFFFF;
+    --ink:#1C2333;
+    --navy:#1F2A44;
+    --navy-2:#2E3B5C;
+    --gold:#B8863B;
+    --gold-2:#E6C68A;
+    --green:#3A7D57;
+    --green-bg:#E8F2EC;
+    --red:#B14A3A;
+    --red-bg:#FBEAE6;
+    --amber:#9C6B12;
+    --amber-bg:#FBF1DE;
+    --border:#E2DDD1;
+    --muted:#6B7280;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;
+    line-height:1.5;
+  }
+  header.app{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-2) 100%);
+    color:#F4F2EC;
+    padding:28px 32px 24px;
+    display:flex;
+    align-items:center;
+    gap:18px;
+  }
+  .selo{
+    width:56px;height:56px;border-radius:50%;
+    border:2px solid var(--gold-2);
+    display:flex;align-items:center;justify-content:center;
+    font-family:Georgia,'Times New Roman',serif;
+    font-weight:700;font-size:20px;color:var(--gold-2);
+    flex:none;
+    position:relative;
+  }
+  .selo::after{
+    content:"";
+    position:absolute;inset:-6px;
+    border:1px dashed rgba(230,198,138,0.5);
+    border-radius:50%;
+  }
+  header.app h1{
+    font-family:Georgia,'Times New Roman',serif;
+    font-size:22px;
+    margin:0 0 2px;
+    letter-spacing:.2px;
+  }
+  header.app p{
+    margin:0;
+    color:#C9D1E0;
+    font-size:13px;
+  }
+  nav.tabs{
+    display:flex;
+    gap:2px;
+    background:var(--navy);
+    padding:0 24px;
+    overflow-x:auto;
+  }
+  nav.tabs button{
+    background:transparent;
+    border:none;
+    color:#B9C2D6;
+    padding:14px 18px;
+    font-size:13.5px;
+    font-weight:600;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    white-space:nowrap;
+  }
+  nav.tabs button.active{
+    color:#fff;
+    border-bottom-color:var(--gold);
+  }
+  main{
+    max-width:1180px;
+    margin:0 auto;
+    padding:24px;
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:20px 22px;
+    margin-bottom:18px;
+  }
+  .card h2{
+    font-family:Georgia,'Times New Roman',serif;
+    font-size:17px;
+    margin:0 0 4px;
+    color:var(--navy);
+  }
+  .card .hint{
+    color:var(--muted);
+    font-size:12.5px;
+    margin:0 0 14px;
+  }
+   .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+  .rules-form{
+    display:grid;
+    grid-template-columns:minmax(170px,1.15fr) minmax(150px,.9fr) minmax(135px,.8fr) minmax(245px,1.45fr) minmax(175px,.95fr) auto auto;
+    gap:12px;
+    align-items:end;
+  }
+  .rules-form .field{min-width:0;}
+  .rules-form .month-field{min-width:0;flex:initial;}
+  .rules-form > .btn{height:38px;white-space:nowrap;}
+  @media (max-width:1100px){
+    .rules-form{grid-template-columns:repeat(3,minmax(0,1fr));}
+    .rules-form .month-field{grid-column:span 2;}
+  }
+  @media (max-width:700px){
+    .rules-form{grid-template-columns:1fr;}
+    .rules-form .month-field{grid-column:auto;}
+    .rules-form > .btn{width:100%;}
+  }
+  .field{display:flex;flex-direction:column;gap:5px;min-width:140px;}
+  .field.grow{flex:1;}
+  .field label{
+    font-size:11.5px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    color:var(--muted);
+  }
+  input,select,textarea{
+    border:1px solid var(--border);
+    border-radius:7px;
+    padding:8px 10px;
+    font-size:13.5px;
+    font-family:inherit;
+    background:#fff;
+    color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{
+    outline:2px solid var(--gold-2);
+    outline-offset:1px;
+    border-color:var(--gold);
+  }
+  textarea{resize:vertical;min-height:90px;font-family:ui-monospace,Consolas,monospace;font-size:12px;}
+  button.btn{
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    border-radius:7px;
+    padding:9px 16px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  button.btn:hover{background:var(--navy-2);}
+  button.btn.gold{background:var(--gold);}
+  button.btn.gold:hover{background:var(--amber);}
+  button.btn.ghost{
+    background:transparent;
+    color:var(--navy);
+    border:1px solid var(--border);
+  }
+  button.btn.danger{background:var(--red);}
+  button.btn.small{padding:5px 10px;font-size:12px;border-radius:6px;}
+  .file-drop{
+    border:1.5px dashed var(--border);
+    border-radius:8px;
+    padding:16px;
+    text-align:center;
+    color:var(--muted);
+    font-size:12.5px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.8px;
+  }
+  thead th{
+    text-align:left;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--muted);
+    border-bottom:1.5px solid var(--border);
+    padding:8px 8px;
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:8px 8px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody tr:hover{background:#FAF9F5;}
+  .table-wrap{overflow-x:auto;max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;}
+  .badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:999px;
+    font-size:11.5px;
+    font-weight:700;
+  }
+  .badge.ok{background:var(--amber-bg);color:var(--amber);}
+  .badge.isento{background:var(--green-bg);color:var(--green);}
+  .badge.erro{background:var(--red-bg);color:var(--red);}
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .count-pill{
+    font-size:12px;
+    color:var(--muted);
+    background:#F1EFE8;
+    padding:4px 10px;
+    border-radius:999px;
+  }
+  .stat-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .stat{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .stat .n{font-family:Georgia,serif;font-size:22px;color:var(--navy);}
+  .stat .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  footer.note{
+    text-align:center;
+    color:var(--muted);
+    font-size:11.5px;
+    padding:20px;
+  }
+  .month-field{min-width:260px;flex:1.05;position:relative;}
+.month-picker{position:relative;}
+.month-picker-btn{
+  width:100%;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 12px;
+  border:1px solid #DDE2EA;
+  border-radius:9px;
+  background:#F8F9FB;
+  color:#273044;
+  font:600 13px inherit;
+  cursor:pointer;
+  text-align:left;
+}
+.month-picker-btn:hover{border-color:#C8CED9;background:#fff;}
+.month-picker-btn:focus{outline:2px solid #F4A0AA;outline-offset:1px;}
+.month-picker-summary{display:flex;align-items:center;gap:7px;min-width:0;}
+.month-picker-icon{color:#8992A5;font-size:15px;}
+.month-picker-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.month-picker-count{
+  flex:none;
+  min-width:22px;height:22px;padding:0 7px;
+  display:none;align-items:center;justify-content:center;
+  border-radius:999px;background:var(--red-soft);color:var(--red);
+  font-size:11px;font-weight:800;
+}
+.month-picker-arrow{color:#8C95A5;font-size:12px;transition:transform .15s;}
+.month-picker.open .month-picker-arrow{transform:rotate(180deg);}
+.month-picker-menu{
+  display:none;
+  position:absolute;
+  z-index:50;
+  left:0;
+  width:320px;
+  max-width:min(320px, calc(100vw - 40px));
+  top:calc(100% + 7px);
+  padding:12px;
+  background:#fff;
+  border:1px solid #DDE2EA;
+  border-radius:12px;
+  box-shadow:0 12px 30px rgba(24,32,51,.14);
+}
+.month-picker.open .month-picker-menu{display:block;}
+.month-picker-title{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:9px;
+  font-size:11px;font-weight:800;color:#7E8798;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.month-picker-clear{
+  border:0;background:none;color:var(--red);font:700 11px inherit;cursor:pointer;padding:2px 0;
+}
+.months-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+.month-option{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:34px;
+  border:1px solid #E4E8EE;
+  border-radius:8px;
+  background:#FAFBFC;
+  color:#566176;
+  font-size:11.5px;
+  font-weight:700;
+  cursor:pointer;
+  user-select:none;
+}
+.month-option:hover{border-color:#F2A0AA;background:#FFF7F8;}
+.month-option.selected{
+  background:var(--red-soft);
+  border-color:#F2A0AA;
+  color:var(--red);
+}
+.month-option.disabled{
+  opacity:.42;
+  cursor:not-allowed;
+}
+.month-option input{position:absolute;opacity:0;pointer-events:none;}
+.field-hint{display:block;margin-top:5px;color:#8D96A6;font-size:10.5px;}
+.actions-cell{display:flex;gap:6px;}
+  .empty{
+    padding:30px;
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+  }
+  .save-msg{font-size:12px;color:var(--green);margin-left:8px;}
+
+/* ===== CORREÇÃO DE DIMENSIONAMENTO DO FORMULÁRIO ===== */
+#tab-regras .rules-form,
+#tab-regras .rules-form *,
+#tab-regras .rules-form input,
+#tab-regras .rules-form button,
+#tab-regras .rules-form .month-picker,
+#tab-regras .rules-form .month-picker-btn{
+  box-sizing:border-box;
+}
+
+#tab-regras .rules-form{
+  width:100%;
+  min-width:0;
+}
+
+#tab-regras .rules-form > .field,
+#tab-regras .rules-form > .btn{
+  min-width:0;
+  max-width:100%;
+}
+
+#tab-regras .rules-form .month-picker,
+#tab-regras .rules-form .month-picker-btn{
+  width:100%;
+  max-width:100%;
+}
+
+#tab-regras .rules-form .month-picker-btn{
+  overflow:hidden;
+}
+
+#tab-regras .rules-form .month-picker-summary{
+  min-width:0;
+  flex:1 1 auto;
+  overflow:hidden;
+}
+
+#tab-regras .rules-form .month-picker-count{
+  flex:0 0 auto;
+}
+
+#tab-regras .rules-form .month-picker-arrow{
+  flex:0 0 auto;
+}
+
+/* Mantém uma distância visual clara entre os campos */
+#tab-regras .rules-form{
+  column-gap:14px;
+}
+
+/* Evita que o texto auxiliar aumente a largura do campo */
+#tab-regras .rules-form .field-hint{
+  max-width:100%;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* ===== DASHBOARD UI ===== */
+:root{
+  --bg:#F6F7F9;
+  --surface:#FFFFFF;
+  --ink:#182033;
+  --navy:#182033;
+  --muted:#8992A5;
+  --border:#E5E8EF;
+  --red:#EE3345;
+  --red-soft:#FDEBED;
+  --orange:#F5A623;
+  --orange-soft:#FFF3DF;
+  --green:#1DBA83;
+  --green-soft:#E5F8F1;
+  --blue:#4A82F0;
+  --blue-soft:#EAF1FF;
+  --gray:#9AA3B2;
+  --gray-soft:#F0F2F5;
+  --radius:14px;
+}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;
+  font-size:14px;
+}
+header.app{
+  background:#fff;
+  color:var(--ink);
+  min-height:92px;
+  padding:22px 32px;
+  border-bottom:1px solid #edf0f4;
+  box-shadow:0 1px 3px rgba(22,31,50,.04);
+  justify-content:space-between;
+}
+.brand{display:flex;align-items:center;gap:15px;}
+.brand-icon{
+  width:48px;height:48px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--red-soft);color:var(--red);font-size:25px;font-weight:700;
+}
+header.app h1{
+  font-family:inherit;font-size:22px;line-height:1.2;font-weight:750;
+  margin:0 0 3px;letter-spacing:-.4px;color:#182033;
+}
+header.app p{color:#7F899B;font-size:13px;}
+.header-actions{display:flex;align-items:center;gap:12px;}
+.reference-box{
+  height:48px;min-width:190px;padding:7px 14px;
+  display:flex;align-items:center;gap:10px;
+  background:#fff;border:1px solid #E1E5EB;border-radius:12px;
+  box-shadow:0 2px 5px rgba(30,40,60,.05);
+}
+.reference-icon{font-size:19px;color:#6D778A;}
+.reference-box small{display:block;color:#98A1B1;font-size:10px;font-weight:800;letter-spacing:.04em;}
+.reference-box strong{font-size:13px;color:#273044;}
+.btn{border-radius:9px;padding:10px 16px;font-size:13px;font-weight:700;}
+.btn.primary,.btn.gold{background:var(--red);color:#fff;}
+.btn.primary:hover,.btn.gold:hover{background:#D92A3B;}
+.btn.refresh-btn{background:var(--red);color:#fff;box-shadow:0 6px 16px rgba(238,51,69,.18);}
+.btn.refresh-btn:hover{background:#D92A3B;}
+.btn.ghost{background:#fff;border:1px solid #DDE2EA;color:#4A556A;}
+nav.tabs{background:#fff;padding:0 32px;border-bottom:1px solid #E8EBF0;}
+.tabs-inner{max-width:1280px;margin:0 auto;display:flex;gap:4px;}
+nav.tabs button{color:#7D8799;background:transparent;padding:14px 18px;border-bottom:3px solid transparent;font-weight:700;}
+nav.tabs button.active{color:var(--red);border-bottom-color:var(--red);}
+main{max-width:1280px;padding:26px 28px 40px;}
+.page-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.page-heading h2{font-family:inherit;font-size:20px;color:#182033;margin:0 0 3px;font-weight:750;}
+.page-heading p{margin:0;color:#8A93A3;font-size:13px;}
+.stat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:18px;}
+.stat{
+  background:#fff;border:1px solid #E4E7ED;border-radius:14px;
+  padding:16px 18px 15px;min-height:145px;position:relative;
+  box-shadow:0 2px 5px rgba(30,40,60,.045);
+  border-top:3px solid transparent;
+}
+.stat-red{border-top-color:var(--red);}
+.stat-orange{border-top-color:var(--orange);}
+.stat-green{border-top-color:var(--green);}
+.stat-blue{border-top-color:var(--blue);}
+.stat-gray{border-top-color:#AEB5C0;}
+.stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;}
+.stat-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;}
+.stat-red .stat-icon{background:var(--red-soft);color:var(--red);}
+.stat-orange .stat-icon{background:var(--orange-soft);color:var(--orange);}
+.stat-green .stat-icon{background:var(--green-soft);color:var(--green);}
+.stat-blue .stat-icon{background:var(--blue-soft);color:var(--blue);}
+.stat-gray .stat-icon{background:var(--gray-soft);color:#7F8999;}
+.stat-trend{font-size:18px;color:var(--red);}
+.stat-orange .stat-trend{color:var(--orange);}
+.stat-green .stat-trend{color:var(--green);}
+.stat-blue .stat-trend{color:var(--blue);}
+.stat-gray .stat-trend{color:#9BA4B2;}
+.stat .n{font-size:28px;font-weight:800;line-height:1;color:#182033;margin-bottom:8px;}
+.stat .n.money{font-size:22px;}
+.stat .l{font-size:12px;color:#9AA3B2;font-weight:600;}
+.legend{display:flex;align-items:center;gap:16px;margin:7px 0 18px;padding-left:6px;color:#697386;font-size:12px;}
+.legend strong{font-size:10px;color:#8B94A5;letter-spacing:.05em;margin-right:3px;}
+.legend span{background:#fff;border:1px solid #ECEEF2;border-radius:7px;padding:5px 9px;display:inline-flex;align-items:center;gap:6px;}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.dot-red{background:var(--red);}.dot-green{background:var(--green);}.dot-blue{background:var(--blue);}.dot-gray{background:#A5ADBA;}
+.filter-card{
+  background:#fff;border:1px solid #E1E5EB;border-radius:14px;
+  padding:16px;display:flex;gap:14px;align-items:flex-end;margin-bottom:10px;
+  box-shadow:0 2px 5px rgba(30,40,60,.04);
+}
+.search-wrap{position:relative;flex:1;min-width:260px;}
+.search-wrap input{width:100%;height:44px;padding:0 14px 0 38px;background:#F6F7F9;border-color:#E2E6ED;border-radius:9px;}
+.search-icon{position:absolute;left:13px;top:10px;color:#9AA3B2;font-size:22px;z-index:2;}
+.filter-field{min-width:145px;}
+.filter-field label{display:block;font-size:10px;font-weight:800;color:#929BAD;letter-spacing:.05em;margin:0 0 5px;}
+.filter-field input,.filter-field select{height:44px;width:100%;background:#F6F7F9;}
+.filter-toggle{height:44px;background:#fff;border:0;color:#667085;font-weight:700;padding:0 8px;cursor:pointer;}
+.advanced-filters{display:none;background:#fff;border:1px solid #E1E5EB;border-radius:12px;padding:14px;margin-bottom:14px;gap:12px;align-items:flex-end;}
+.advanced-filters.open{display:flex;}
+.advanced-filters .field{min-width:190px;}
+.result-card{padding:0;overflow:hidden;margin-top:16px;}
+.result-card .toolbar{padding:17px 18px;border-bottom:1px solid #E7EAF0;margin:0;}
+.subtle{display:block;color:#9AA3B2;font-size:11px;margin-top:3px;}
+.count-pill{background:#F3F5F8;color:#697386;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;}
+.table-wrap{border:0;border-radius:0;max-height:540px;}
+table{font-size:12.5px;}
+thead th{background:#fff;color:#8B94A5;padding:12px 12px;border-bottom:1px solid #E3E7ED;font-size:10px;}
+tbody td{padding:12px;border-bottom:1px solid #EEF0F3;color:#273044;}
+tbody tr:hover{background:#FAFBFC;}
+.badge{padding:4px 9px;font-size:10.5px;}
+.badge.ok{background:var(--orange-soft);color:#C27A00;}
+.badge.isento{background:var(--green-soft);color:#11996D;}
+.badge.erro{background:var(--red-soft);color:#D52B3D;}
+.card{border-color:#E1E5EB;border-radius:14px;box-shadow:0 2px 5px rgba(30,40,60,.035);}
+.card h2{font-family:inherit;font-weight:750;color:#182033;}
+input,select,textarea{border-color:#DDE2EA;border-radius:8px;}
+footer.note{color:#9AA3B2;background:transparent;border:0;}
+@media(max-width:1050px){
+  .stat-grid{grid-template-columns:repeat(3,1fr);}
+  .filter-card{flex-wrap:wrap;}
+  .search-wrap{flex-basis:100%;}
+}
+@media(max-width:700px){
+  header.app{padding:16px;align-items:flex-start;}
+  .header-actions{display:none;}
+  main{padding:18px 14px;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .legend{flex-wrap:wrap;}
+  .page-heading{gap:12px;align-items:flex-start;}
+  .advanced-filters.open{flex-wrap:wrap;}
+}
+
+
+/* ===== ALINHAMENTO FINAL DO FORMULÁRIO DE REGRAS ===== */
+#tab-regras .rules-form{
+  display:grid;
+  grid-template-columns:
+    minmax(180px,1.15fr)
+    minmax(150px,.95fr)
+    minmax(135px,.8fr)
+    minmax(250px,1.35fr)
+    minmax(175px,.95fr)
+    auto;
+  gap:12px;
+  align-items:start;
+}
+
+#tab-regras .rules-form > .field{
+  min-width:0;
+  display:grid;
+  grid-template-rows:32px 38px;
+  gap:0;
+}
+
+#tab-regras .rules-form > .field > label{
+  height:32px;
+  display:flex;
+  align-items:flex-end;
+  padding-bottom:5px;
+  margin:0;
+  line-height:1.15;
+}
+
+#tab-regras .rules-form > .field > input,
+#tab-regras .rules-form > .field > select{
+  height:38px;
+  min-height:38px;
+  box-sizing:border-box;
+}
+
+#tab-regras .rules-form .month-field{
+  display:block;
+}
+
+#tab-regras .rules-form .month-field > label{
+  height:32px;
+  display:flex;
+  align-items:flex-end;
+  padding-bottom:5px;
+  box-sizing:border-box;
+}
+
+#tab-regras .rules-form .month-picker{
+  height:38px;
+}
+
+#tab-regras .rules-form .month-picker-btn{
+  height:38px;
+  min-height:38px;
+  box-sizing:border-box;
+}
+
+#tab-regras .rules-form .field-hint{
+  display:block;
+  height:14px;
+  margin-top:4px;
+  line-height:14px;
+  white-space:nowrap;
+}
+
+#tab-regras .rules-form > .btn{
+  align-self:start;
+  margin-top:32px;
+  height:38px;
+  min-height:38px;
+  box-sizing:border-box;
+  white-space:nowrap;
+}
+
+#tab-regras .rules-form > .btn.ghost{
+  margin-left:0;
+}
+
+@media (max-width:1150px){
+  #tab-regras .rules-form{
+    grid-template-columns:
+      minmax(170px,1.1fr)
+      minmax(145px,.9fr)
+      minmax(125px,.8fr)
+      minmax(220px,1.25fr);
+  }
+
+  #tab-regras .rules-form > .field:nth-child(5){
+    grid-column:span 1;
+  }
+
+  #tab-regras .rules-form > .btn{
+    margin-top:32px;
+  }
+}
+
+@media (max-width:800px){
+  #tab-regras .rules-form{
+    grid-template-columns:1fr 1fr;
+  }
+
+  #tab-regras .rules-form > .field{
+    grid-column:auto;
+  }
+
+  #tab-regras .rules-form .month-field{
+    grid-column:span 2;
+  }
+
+  #tab-regras .rules-form > .btn{
+    margin-top:0;
+    width:100%;
+  }
+}
+
+@media (max-width:520px){
+  #tab-regras .rules-form{
+    grid-template-columns:1fr;
+  }
+
+  #tab-regras .rules-form .month-field{
+    grid-column:auto;
+  }
+}
+
+
+/* ===== AJUSTE FINAL DO FORMULÁRIO DE REGRAS ===== */
+
+#tab-regras .rules-form-grid{
+  display:grid !important;
+  grid-template-columns:
+    minmax(180px, 1.35fr)
+    minmax(145px, 1fr)
+    85px
+    minmax(220px, 1.25fr)
+    minmax(150px, .95fr)
+    auto !important;
+  gap:12px !important;
+  align-items:end !important;
+}
+
+#tab-regras .rules-form-grid .field{
+  min-width:0 !important;
+}
+
+/* QTD. DE PARCELAS — compacto */
+#tab-regras .rules-form-grid #rParcelas{
+  width:85px !important;
+  min-width:85px !important;
+  max-width:85px !important;
+  padding-left:8px !important;
+  padding-right:8px !important;
+}
+
+/* Campo de meses */
+#tab-regras .rules-form-grid .month-picker{
+  width:100% !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  box-sizing:border-box !important;
+}
+
+#tab-regras .rules-form-grid .month-picker-btn{
+  width:100% !important;
+  min-width:0 !important;
+  box-sizing:border-box !important;
+}
+
+#tab-regras .rules-form-grid .month-picker-summary{
+  min-width:0 !important;
+  overflow:hidden !important;
+}
+
+#tab-regras .rules-form-grid .month-picker-text{
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+
+/* Área dos botões */
+#tab-regras .rules-form-grid .field-actions{
+  width:auto !important;
+  min-width:125px !important;
+}
+
+@media (max-width:1100px){
+  #tab-regras .rules-form-grid{
+    grid-template-columns:
+      minmax(170px, 1.3fr)
+      minmax(135px, 1fr)
+      80px
+      minmax(200px, 1.2fr)
+      minmax(145px, .9fr)
+      auto !important;
+  }
+
+  #tab-regras .rules-form-grid #rParcelas{
+    width:80px !important;
+    min-width:80px !important;
+    max-width:80px !important;
+  }
+}
+
+@media (max-width:800px){
+  #tab-regras .rules-form-grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  #tab-regras .rules-form-grid #rParcelas{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+  }
+
+  #tab-regras .rules-form-grid .month-field{
+    grid-column:span 2;
+  }
+}
+
+@media (max-width:520px){
+  #tab-regras .rules-form-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  #tab-regras .rules-form-grid .month-field{
+    grid-column:auto;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="brand">
+    <div class="brand-icon">↕</div>
+    <div>
+      <h1>Desconto Sindical</h1>
+      <p>Controle e cálculo de descontos sindicais</p>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <div class="reference-box">
+      <span class="reference-icon">▣</span>
+      <div>
+        <small>ANO DE REFERÊNCIA</small>
+        <strong id="headerAno">2026</strong>
+      </div>
+    </div>
+    <button class="btn refresh-btn" id="btnRefreshAll" type="button">↻ Atualizar dados</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <div class="tabs-inner">
+    <button data-tab="calculo" class="active">Cálculo</button>
+    <button data-tab="regras">Regras</button>
+    <button data-tab="oposicao">Cartas de Oposição</button>
+  </div>
+</nav>
+
+<main>
+  <!-- TAB 1: BASE DE SINDICATOS -->
+
+  <!-- TAB 3: REGRAS -->
+
+
+  <!-- TAB 4: CARTAS DE OPOSIÇÃO -->
+
+
+  <!-- TAB 5: CALCULO -->
+
+
+
+  <section class="panel active" id="tab-calculo">
+    <div class="page-heading">
+      <div>
+        <h2>Visão geral</h2>
+        <p>Consulte os colaboradores e acompanhe os descontos previstos.</p>
+      </div>
+      <button class="btn primary" id="btnCalcular">Calcular descontos</button>
+    </div>
+
+    <div class="stat-grid" id="stats">
+      <div class="stat stat-red">
+        <div class="stat-top"><span class="stat-icon">♙</span><span class="stat-trend">↗</span></div>
+        <div class="n" id="stTotal">0</div>
+        <div class="l">Colaboradores</div>
+      </div>
+      <div class="stat stat-orange">
+        <div class="stat-top"><span class="stat-icon">◌</span><span class="stat-trend">↗</span></div>
+        <div class="n" id="stDesconto">0</div>
+        <div class="l">A descontar</div>
+      </div>
+      <div class="stat stat-green">
+        <div class="stat-top"><span class="stat-icon">✓</span><span class="stat-trend">↗</span></div>
+        <div class="n" id="stIsentos">0</div>
+        <div class="l">Isentos por oposição</div>
+      </div>
+      <div class="stat stat-blue">
+        <div class="stat-top"><span class="stat-icon">▧</span><span class="stat-trend">—</span></div>
+        <div class="n" id="stPendentes">0</div>
+        <div class="l">Pendências</div>
+      </div>
+      <div class="stat stat-gray">
+        <div class="stat-top"><span class="stat-icon">R$</span><span class="stat-trend">—</span></div>
+        <div class="n money" id="stValor">R$ 0,00</div>
+        <div class="l">Total a descontar</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <strong>LEGENDA</strong>
+      <span><i class="dot dot-red"></i>A descontar</span>
+      <span><i class="dot dot-green"></i>Isento</span>
+      <span><i class="dot dot-blue"></i>Fora do período</span>
+      <span><i class="dot dot-gray"></i>Pendente</span>
+    </div>
+
+    <div class="filter-card">
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input id="cBusca" type="text" placeholder="Buscar por nome, CPF, função ou unidade...">
+      </div>
+
+      <div class="filter-field">
+        <label>ANO</label>
+        <input type="number" id="cAno" value="2026" step="1">
+      </div>
+
+      <div class="filter-field">
+        <label>STATUS</label>
+        <select id="cFiltroStatus">
+          <option value="">Todos</option>
+          <option value="A descontar">A descontar</option>
+          <option value="Isento (carta de oposição)">Isento (carta de oposição)</option>
+          <option value="Regra não cadastrada">Regra não cadastrada</option>
+          <option value="Sindicato não identificado">Sindicato não identificado</option>
+          <option value="Fora do período de desconto">Fora do período de desconto</option>
+        </select>
+      </div>
+
+      <button class="filter-toggle" type="button" onclick="document.getElementById('advancedFilters').classList.toggle('open')">
+        ☷ Filtros
+      </button>
+
+      <button class="btn ghost" id="btnExportar" type="button">
+        ↓ Exportar CSV
+      </button>
+    </div>
+
+    <div class="advanced-filters" id="advancedFilters">
+      <div class="field">
+        <label>Unidade</label>
+        <select id="cFiltroUnidade"><option value="">Todas</option></select>
+      </div>
+      <div class="field">
+        <label>Sindicato</label>
+        <select id="cFiltroSindicato"><option value="">Todos</option></select>
+      </div>
+    </div>
+
+    <div class="card result-card">
+      <div class="toolbar">
+        <div>
+          <h2 style="margin:0;">Colaboradores</h2>
+          <span class="subtle">Resultado do cálculo por colaborador</span>
+        </div>
+        <span class="count-pill" id="countCalc">0 registros</span>
+      </div>
+      <div class="table-wrap"><table id="tblCalc"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-regras">
+    <div class="card">
+      <h2>Cadastrar regra de desconto por sindicato</h2>
+      <p class="hint">Uma regra por sindicato. Informe exatamente em quais meses cada parcela será descontada. Cadastrar novamente um sindicato já existente substitui a regra anterior.</p>
+      <div class="row rules-form">
+        <div class="field grow">
+          <label>Sindicato</label>
+          <input type="text" id="rSindicato" list="listaSindicatos" placeholder="Ex: SINPRO / Sindicato dos Professores...">
+          <datalist id="listaSindicatos"></datalist>
+        </div>
+        <div class="field">
+          <label>Percentual de desconto (%)</label>
+          <input type="number" id="rPercentual" step="0.01" min="0" placeholder="Ex: 1">
+        </div>
+        <div class="field">
+          <label>Qtd. de parcelas</label>
+          <input type="number" id="rParcelas" min="1" step="1" value="1">
+        </div>
+        <div class="field month-field">
+          <label>Meses do desconto</label>
+          <div class="month-picker" id="monthPicker">
+            <button type="button" class="month-picker-btn" id="monthPickerBtn" aria-expanded="false">
+              <span class="month-picker-summary">
+                <span class="month-picker-icon">▣</span>
+                <span class="month-picker-text" id="monthPickerText">Selecionar meses</span>
+              </span>
+              <span class="month-picker-count" id="monthPickerCount">0</span>
+              <span class="month-picker-arrow">⌄</span>
+            </button>
+
+            <div class="month-picker-menu" id="monthPickerMenu">
+              <div class="month-picker-title">
+                <span>Selecione os meses</span>
+                <button type="button" class="month-picker-clear" id="monthPickerClear">Limpar</button>
+              </div>
+
+              <div id="rMeses" class="months-grid">
+                <label class="month-option"><input type="checkbox" value="1"><span>Jan</span></label>
+                <label class="month-option"><input type="checkbox" value="2"><span>Fev</span></label>
+                <label class="month-option"><input type="checkbox" value="3"><span>Mar</span></label>
+                <label class="month-option"><input type="checkbox" value="4"><span>Abr</span></label>
+                <label class="month-option"><input type="checkbox" value="5"><span>Mai</span></label>
+                <label class="month-option"><input type="checkbox" value="6"><span>Jun</span></label>
+                <label class="month-option"><input type="checkbox" value="7"><span>Jul</span></label>
+                <label class="month-option"><input type="checkbox" value="8"><span>Ago</span></label>
+                <label class="month-option"><input type="checkbox" value="9"><span>Set</span></label>
+                <label class="month-option"><input type="checkbox" value="10"><span>Out</span></label>
+                <label class="month-option"><input type="checkbox" value="11"><span>Nov</span></label>
+                <label class="month-option"><input type="checkbox" value="12"><span>Dez</span></label>
+              </div>
+            </div>
+          </div>
+          <small id="rMesesHint" class="field-hint">Escolha os meses em que cada parcela será descontada.</small>
+        </div>
+        <div class="field">
+          <label>Valor limite de desconto (R$)</label>
+          <input type="number" id="rLimite" step="0.01" min="0" placeholder="Opcional">
+        </div>
+        <button class="btn gold" id="btnAddRegra">Salvar regra</button>
+        <button class="btn ghost" id="btnCancelRegra" type="button" style="display:none;">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;">Regras cadastradas</h2>
+        <span class="count-pill" id="countRegras">0 regras</span>
+      </div>
+      <div class="table-wrap"><table id="tblRegras"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-oposicao">
+    <div class="card">
+      <h2>Registrar carta de oposição</h2>
+      <p class="hint">Colaboradores com carta de oposição registrada para o ano do desconto ficam isentos automaticamente no cálculo.</p>
+      <div class="row">
+        <div class="field">
+          <label>CPF</label>
+          <input type="text" id="oCpf" placeholder="000.000.000-00">
+        </div>
+        <div class="field grow">
+          <label>Nome (opcional)</label>
+          <input type="text" id="oNome" placeholder="Nome do colaborador">
+        </div>
+        <div class="field">
+          <label>Ano de referência</label>
+          <input type="number" id="oAno" value="2026" step="1">
+        </div>
+        <button class="btn gold" id="btnAddOpos">Registrar oposição</button>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>Importar em lote (CSV: cpf,ano,nome)</label>
+        <textarea id="pasteOpos" placeholder="123.456.789-00,2026,Fulano de Tal"></textarea>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost" id="btnImportOpos">Importar lote</button>
+        <span class="save-msg" id="msgOpos"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;">Cartas registradas</h2>
+        <span class="count-pill" id="countOpos">0 registros</span>
+      </div>
+      <div class="table-wrap"><table id="tblOpos"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<footer class="note">Colaboradores e sindicatos são consultados automaticamente pelo App Web; regras e oposições são salvas automaticamente na planilha.</footer>
+
+<script>
+(function(){
+
+// ---------- API / GOOGLE APPS SCRIPT ----------
+const BASE_COLABORADORES_API =
+  'https://script.google.com/macros/s/AKfycbwVn9dVkaLcKX1Mfhnndz1GzITcJrk9G8blaTRnvSz3FJgOx3KJ0HVxqy2GMYrGTxz0LA/exec';
+
+
+function normalizeApiPayload(payload){
+  // O App Web pode retornar:
+  // - array de objetos
+  // - array de arrays
+  // - {data:[...]}
+  // - {values:[...]}
+  // - {rows:[...]}
+  // - {result:[...]}
+  if(payload && typeof payload === 'object' && !Array.isArray(payload)){
+    if(Array.isArray(payload.data)){
+      if(Array.isArray(payload.headers) && payload.data.length){
+        return [payload.headers, ...payload.data];
+      }
+      payload = payload.data;
+    } else if(Array.isArray(payload.values)){
+      payload = payload.values;
+    } else if(Array.isArray(payload.rows)){
+      payload = payload.rows;
+    } else if(Array.isArray(payload.result)){
+      payload = payload.result;
+    }
+  }
+
+  if(!Array.isArray(payload) || !payload.length) return [];
+
+  // Array de objetos -> transforma em matriz com cabeçalho.
+  if(payload.every(x => x && typeof x === 'object' && !Array.isArray(x))){
+    const keys = [...new Set(payload.flatMap(o => Object.keys(o)))];
+    return [
+      keys,
+      ...payload.map(o => keys.map(k => o[k] ?? ''))
+    ];
+  }
+
+  return payload;
+}
+
+async function fetchJson(url){
+  const response = await fetch(url, {
+    method: 'GET',
+    cache: 'no-store',
+    redirect: 'follow'
+  });
+
+  if(!response.ok){
+    throw new Error('HTTP ' + response.status);
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+
+  if(contentType.includes('application/json')){
+    return await response.json();
+  }
+
+  const text = await response.text();
+
+  try{
+    return JSON.parse(text);
+  }catch(_){
+    throw new Error('O App Web não retornou JSON válido.');
+  }
+}
+
+// Carrega somente os colaboradores.
+// Eles ficam em memória para o cálculo, mas não existe mais uma aba
+// exclusiva para exibi-los.
+async function loadBasesFromApi(){
+  const btn = document.getElementById('btnRefreshAll');
+
+  try {
+    if(btn){
+      btn.disabled = true;
+      btn.textContent = 'Carregando...';
+    }
+
+    // Uma única chamada ao App Web. O retorno esperado é:
+    // { colaboradores: [...], sindicatos: [...], regras: [...], oposicoes: [...] }
+    const payload = await fetchJson(BASE_COLABORADORES_API);
+
+    const colaboradoresRows = normalizeApiPayload(payload?.colaboradores ?? []);
+    const sindicatosRows = normalizeApiPayload(payload?.sindicatos ?? []);
+    const regrasRows = normalizeApiPayload(payload?.regras ?? []);
+    const oposicoesRows = normalizeApiPayload(payload?.oposicoes ?? []);
+
+    const colaboradores = importColaboradores(colaboradoresRows);
+    const sindicatos = importSindicatosBase(sindicatosRows);
+    const regras = importRegrasFromApi(regrasRows);
+    const oposicoes = importOposFromApi(oposicoesRows);
+
+    if(!colaboradores.length){
+      throw new Error('Nenhum colaborador retornado pelo App Web.');
+    }
+
+    if(!sindicatos.length){
+      throw new Error('Nenhum sindicato retornado pelo App Web.');
+    }
+
+    DB.colaboradores = colaboradores;
+    DB.sindicatosBase = sindicatos;
+
+    if(regras.length || Array.isArray(payload?.regras)){
+      DB.regras = regras;
+    }
+
+    if(oposicoes.length || Array.isArray(payload?.oposicoes)){
+      DB.oposicoes = oposicoes;
+    }
+
+    await Promise.all([
+      Store.set('colaboradores', DB.colaboradores),
+      Store.set('sindicatosBase', DB.sindicatosBase),
+      Store.set('regras', DB.regras),
+      Store.set('oposicoes', DB.oposicoes)
+    ]);
+
+    renderRegras();
+    renderOpos();
+    refreshSelectors();
+
+    console.log(
+      'Dados atualizados:',
+      DB.colaboradores.length + ' colaboradores,',
+      DB.sindicatosBase.length + ' registros de sindicatos.'
+    );
+
+  } catch(e) {
+    console.error('Erro ao atualizar dados:', e);
+  } finally {
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = '↻ Atualizar dados';
+    }
+  }
+}
+// ---------- STORAGE ----------
+const Store = {
+  async get(key){
+    try{
+      if(window.storage){
+        const r = await window.storage.get(key,false);
+        return r ? JSON.parse(r.value) : null;
+      }
+      const v = localStorage.getItem('sind_'+key);
+      return v ? JSON.parse(v) : null;
+    }catch(e){ return null; }
+  },
+  async set(key,value){
+    try{
+      if(window.storage){
+        await window.storage.set(key, JSON.stringify(value), false);
+      } else {
+        localStorage.setItem('sind_'+key, JSON.stringify(value));
+      }
+    }catch(e){ console.error('storage error',e); }
+  }
+};
+
+const DB = { colaboradores:[], sindicatosBase:[], regras:[], oposicoes:[] };
+let ultimoResultado = [];
+
+// ---------- HELPERS ----------
+function normalizeHeader(h){
+  return (h||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function stripAccentsLower(s){
+  return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
+function normCPF(c){ return (c||'').toString().replace(/\D/g,''); }
+function parseNumber(v){
+  if(v===undefined||v===null||v==='') return 0;
+  let s = v.toString().trim().replace(/R\$\s?/,'');
+  if(/,\d{1,2}$/.test(s) && s.includes('.')) s = s.replace(/\./g,'').replace(',','.');
+  else if(s.includes(',') && !s.includes('.')) s = s.replace(',','.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function fmtMoney(n){
+  return 'R$ ' + (n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+const MESES = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+function detectDelim(line){
+  return (line.split(';').length > line.split(',').length) ? ';' : ',';
+}
+function parseCSV(text){
+  text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim();
+  if(!text) return [];
+  const delim = detectDelim(text.split('\n')[0]);
+  const rows=[]; let row=[], field='', inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQuotes){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else inQuotes=false; }
+      else field+=c;
+    } else {
+      if(c==='"') inQuotes=true;
+      else if(c===delim){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else field+=c;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim() !== ''));
+}
+function findCol(headers, options){
+  for(const opt of options){
+    const i = headers.indexOf(opt);
+    if(i !== -1) return i;
+  }
+  return -1;
+}
+function cell(r, i){ return i===-1 || i>=r.length ? '' : (r[i]||'').toString().trim(); }
+
+// ---------- IMPORT: COLABORADORES ----------
+function importColaboradores(rows){
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(normalizeHeader);
+  const idx = {
+    unidade: findCol(headers,['unidade']),
+    colaborador: findCol(headers,['colaborador','nome','funcionario']),
+    departamento: findCol(headers,['departamento','depto']),
+    cpf: findCol(headers,['cpf']),
+    cargo: findCol(headers,['cargo']),
+    salario: findCol(headers,['salario']),
+    funcao: findCol(headers,['funcao']),
+    sindicato: findCol(headers,['sindicato']),
+  };
+  const out = [];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    const unidade = cell(r,idx.unidade);
+    const colaborador = cell(r,idx.colaborador);
+    if(!unidade && !colaborador) continue;
+    out.push({
+      unidade, colaborador,
+      departamento: cell(r,idx.departamento),
+      cpf: cell(r,idx.cpf),
+      cargo: cell(r,idx.cargo),
+      salario: parseNumber(cell(r,idx.salario)),
+      funcao: cell(r,idx.funcao),
+      sindicato: cell(r,idx.sindicato),
+    });
+  }
+  return out;
+}
+
+// ---------- IMPORT: SINDICATOS BASE ----------
+function importSindicatosBase(rows){
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(normalizeHeader);
+  const iUnidade = findCol(headers,['unidade']);
+  const iProf = findCol(headers,['sindicatoprofessor','professor']);
+  const iAdm = findCol(headers,['sindicatoadministrativo','administrativo']);
+  const out = [];
+  if(iProf !== -1 || iAdm !== -1){
+    for(let i=1;i<rows.length;i++){
+      const r = rows[i];
+      const unidade = cell(r,iUnidade);
+      if(!unidade) continue;
+      const prof = cell(r,iProf);
+      const adm = cell(r,iAdm);
+      if(prof) out.push({unidade, funcao:'Professor', sindicato:prof});
+      if(adm) out.push({unidade, funcao:'Administrativo', sindicato:adm});
+    }
+  } else {
+    const iFuncao = findCol(headers,['funcao']);
+    const iSindicato = findCol(headers,['sindicato']);
+    for(let i=1;i<rows.length;i++){
+      const r = rows[i];
+      const unidade = cell(r,iUnidade);
+      if(!unidade) continue;
+      out.push({unidade, funcao:cell(r,iFuncao), sindicato:cell(r,iSindicato)});
+    }
+  }
+  return out;
+}
+
+// ---------- RENDER: TABLE GENERIC ----------
+function renderTable(tableEl, columns, data, rowRenderer){
+  const thead = tableEl.querySelector('thead');
+  const tbody = tableEl.querySelector('tbody');
+  thead.innerHTML = '<tr>' + columns.map(c=>`<th>${c}</th>`).join('') + '</tr>';
+  if(!data.length){
+    tbody.innerHTML = `<tr><td colspan="${columns.length}"><div class="empty">Nenhum dado carregado ainda.</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(rowRenderer).join('');
+}
+
+function importRegrasFromApi(rows){
+  if(!rows || rows.length < 2) return [];
+
+  const headers = rows[0].map(normalizeHeader);
+
+  const iSindicato = findCol(headers, ['sindicato']);
+  const iPercentual = findCol(headers, ['percentual','percentualdesconto','aliquota']);
+  const iParcelas = findCol(headers, ['parcelas','quantidadeparcelas']);
+  const iMeses = findCol(headers, ['meses','mesesdesconto','mes','mesinicial','mesdesconto']);
+  const iLimite = findCol(headers, ['limite','valorlimite','valorlimitedesconto']);
+
+  const out = [];
+
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    const sindicato = cell(r, iSindicato);
+    if(!sindicato) continue;
+
+    const percentual = parseNumber(cell(r, iPercentual));
+    const parcelas = parseInt(cell(r, iParcelas)) || 1;
+    const mesesRaw = cell(r, iMeses);
+    const limiteRaw = cell(r, iLimite);
+    const limite = limiteRaw === '' ? null : parseNumber(limiteRaw);
+
+    // Aceita:
+    // "2,6,12"
+    // "2;6;12"
+    // "[2,6,12]"
+    // ou a coluna antiga "Mes" com um único mês.
+    let meses = String(mesesRaw || '')
+      .replace(/[\[\]]/g,'')
+      .split(/[;,|]/)
+      .map(v => parseInt(v.trim(),10))
+      .filter(v => v >= 1 && v <= 12);
+
+    if(!meses.length){
+      meses = [1];
+    }
+
+    meses = [...new Set(meses)];
+
+    out.push({
+      sindicato,
+      percentual,
+      parcelas,
+      meses,
+      // compatibilidade com regras antigas
+      mes: meses[0],
+      limite
+    });
+  }
+
+  return out;
+}
+
+function getMesesSelecionados(){
+  return [...document.querySelectorAll('#rMeses input[type="checkbox"]:checked')]
+    .map(el => Number(el.value))
+    .filter(m => m >= 1 && m <= 12);
+}
+
+function setMesesSelecionados(meses){
+  const selecionados = new Set((meses || []).map(Number));
+
+  document.querySelectorAll('#rMeses input[type="checkbox"]').forEach(cb => {
+    cb.checked = selecionados.has(Number(cb.value));
+  });
+
+  atualizarEstadoMeses();
+}
+
+function atualizarEstadoMeses(){
+  const parcelas = parseInt(document.getElementById('rParcelas').value) || 1;
+  const checks = [...document.querySelectorAll('#rMeses input[type="checkbox"]')];
+  const selecionados = checks.filter(c => c.checked);
+  const hint = document.getElementById('rMesesHint');
+  const text = document.getElementById('monthPickerText');
+  const count = document.getElementById('monthPickerCount');
+
+  checks.forEach(cb => {
+    const option = cb.closest('.month-option');
+    const bloqueado = !cb.checked && selecionados.length >= parcelas;
+    cb.disabled = bloqueado;
+    option.classList.toggle('selected', cb.checked);
+    option.classList.toggle('disabled', bloqueado);
+  });
+
+  if(selecionados.length){
+    const meses = selecionados
+      .map(cb => Number(cb.value))
+      .sort((a,b)=>a-b);
+
+    text.textContent = mesesTexto(meses);
+    count.textContent = meses.length;
+    count.style.display = 'inline-flex';
+  }else{
+    text.textContent = 'Selecionar meses';
+    count.textContent = '0';
+    count.style.display = 'none';
+  }
+
+  if(selecionados.length === parcelas){
+    hint.textContent = `${parcelas} ${parcelas === 1 ? 'mês selecionado' : 'meses selecionados'} para ${parcelas} ${parcelas === 1 ? 'parcela' : 'parcelas'}.`;
+    hint.style.color = 'var(--green)';
+  }else{
+    hint.textContent =
+      `Selecione ${parcelas} ${parcelas === 1 ? 'mês' : 'meses'} para ${parcelas} ${parcelas === 1 ? 'parcela' : 'parcelas'}.`;
+    hint.style.color = 'var(--muted)';
+  }
+}
+
+function fecharSeletorMeses(){
+  const picker = document.getElementById('monthPicker');
+  const btn = document.getElementById('monthPickerBtn');
+  if(!picker) return;
+  picker.classList.remove('open');
+  btn.setAttribute('aria-expanded','false');
+}
+function mesesTexto(meses){
+  const lista = [...new Set((meses || []).map(Number))]
+    .filter(m => m >= 1 && m <= 12)
+    .sort((a,b) => a-b);
+
+  return lista.length ? lista.map(m => MESES[m]).join(', ') : '—';
+}
+
+
+function importOposFromApi(rows){
+  if(!rows || !rows.length) return [];
+
+  const headers = rows[0].map(normalizeHeader);
+
+  const iCpf = findCol(headers, ['cpf']);
+  const iNome = findCol(headers, ['nome','colaborador']);
+  const iAno = findCol(headers, ['ano','anoreferencia']);
+
+  const out = [];
+
+  for(let i=1; i<rows.length; i++){
+    const r = rows[i];
+
+    const cpf = cell(r, iCpf).toString().trim();
+    const nome = cell(r, iNome).toString().trim();
+    const ano = cell(r, iAno).toString().trim();
+
+    if(!cpf || !ano) continue;
+
+    out.push({
+      cpf,
+      nome,
+      ano
+    });
+  }
+
+  return out;
+}
+
+async function salvarOposicaoNaPlanilha(oposicao){
+  const response = await fetch(BASE_COLABORADORES_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify({
+      acao: 'salvarOposicao',
+      oposicao
+    })
+  });
+
+  const texto = await response.text();
+
+  let retorno;
+  try {
+    retorno = JSON.parse(texto);
+  } catch(_) {
+    throw new Error('O App Web não retornou JSON válido.');
+  }
+
+  if(!response.ok || retorno.ok === false){
+    throw new Error(retorno.erro || ('HTTP ' + response.status));
+  }
+
+  return retorno;
+}
+
+async function salvarOposicoesNaPlanilha(oposicoes){
+  const response = await fetch(BASE_COLABORADORES_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify({
+      acao: 'salvarOposicoes',
+      oposicoes
+    })
+  });
+
+  const texto = await response.text();
+
+  let retorno;
+  try {
+    retorno = JSON.parse(texto);
+  } catch(_) {
+    throw new Error('O App Web não retornou JSON válido.');
+  }
+
+  if(!response.ok || retorno.ok === false){
+    throw new Error(retorno.erro || ('HTTP ' + response.status));
+  }
+
+  return retorno;
+}
+
+async function excluirOposicaoDaPlanilha(oposicao){
+  const response = await fetch(BASE_COLABORADORES_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify({
+      acao: 'excluirOposicao',
+      cpf: oposicao.cpf,
+      ano: oposicao.ano
+    })
+  });
+
+  const texto = await response.text();
+
+  let retorno;
+  try {
+    retorno = JSON.parse(texto);
+  } catch(_) {
+    throw new Error('O App Web não retornou JSON válido.');
+  }
+
+  if(!response.ok || retorno.ok === false){
+    throw new Error(retorno.erro || ('HTTP ' + response.status));
+  }
+
+  return retorno;
+}
+
+// ---------- REGRAS: SINCRONIZAÇÃO COM APP WEB ----------
+let regraEmEdicao = null;
+
+async function salvarRegraNaPlanilha(regra){
+  const response = await fetch(BASE_COLABORADORES_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify({
+      acao: 'salvarRegra',
+      regra: regra
+    })
+  });
+
+  if(!response.ok){
+    throw new Error('HTTP ' + response.status);
+  }
+
+  const texto = await response.text();
+
+  try{
+    return JSON.parse(texto);
+  }catch(_){
+    return { ok: true };
+  }
+}
+
+async function excluirRegraDaPlanilha(sindicato){
+  const response = await fetch(BASE_COLABORADORES_API, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'text/plain;charset=utf-8'
+    },
+    body: JSON.stringify({
+      acao: 'excluirRegra',
+      sindicato: sindicato
+    })
+  });
+
+  if(!response.ok){
+    throw new Error('HTTP ' + response.status);
+  }
+
+  const texto = await response.text();
+
+  try{
+    return JSON.parse(texto);
+  }catch(_){
+    return { ok: true };
+  }
+}
+
+// ---------- RENDER: REGRAS ----------
+function renderRegras(){
+  document.getElementById('countRegras').textContent = DB.regras.length + ' regras';
+
+  renderTable(
+    document.getElementById('tblRegras'),
+    ['Sindicato','Percentual','Parcelas','Meses do desconto','Valor limite','Ações'],
+    DB.regras,
+    (r) => `<tr>
+      <td>${r.sindicato}</td>
+      <td>${r.percentual}%</td>
+      <td>${r.parcelas}</td>
+      <td>${mesesTexto(r.meses || (r.mes ? [r.mes] : []))}</td>
+      <td>${r.limite !== null && r.limite !== undefined ? fmtMoney(r.limite) : '—'}</td>
+      <td class="actions-cell">
+        <button class="btn ghost small"
+          onclick="window.__editRegra(${DB.regras.indexOf(r)})">
+          Editar
+        </button>
+        <button class="btn ghost small"
+          onclick="window.__delRegra(${DB.regras.indexOf(r)})">
+          Excluir
+        </button>
+      </td>
+    </tr>`
+  );
+
+  refreshSelectors();
+}
+
+window.__editRegra = function(i){
+  const r = DB.regras[i];
+  if(!r) return;
+
+  regraEmEdicao = i;
+
+  document.getElementById('rSindicato').value = r.sindicato || '';
+  document.getElementById('rPercentual').value = r.percentual ?? '';
+  document.getElementById('rParcelas').value = r.parcelas ?? 1;
+  document.getElementById('rLimite').value =
+    r.limite !== null && r.limite !== undefined ? r.limite : '';
+
+  setMesesSelecionados(
+    r.meses && r.meses.length
+      ? r.meses
+      : [Number(r.mes) || 1]
+  );
+
+  const btn = document.getElementById('btnAddRegra');
+  btn.textContent = 'Atualizar regra';
+
+  document.getElementById('btnCancelRegra').style.display = 'inline-flex';
+
+  document.getElementById('rSindicato').focus();
+};
+
+function cancelarEdicaoRegra(){
+  regraEmEdicao = null;
+  fecharSeletorMeses();
+
+  document.getElementById('rSindicato').value = '';
+  document.getElementById('rPercentual').value = '';
+  document.getElementById('rParcelas').value = 1;
+  document.getElementById('rLimite').value = '';
+
+  setMesesSelecionados([]);
+
+  const btn = document.getElementById('btnAddRegra');
+  btn.textContent = 'Salvar regra';
+
+  document.getElementById('btnCancelRegra').style.display = 'none';
+}
+
+window.__delRegra = async function(i){
+  const regra = DB.regras[i];
+  if(!regra) return;
+
+  if(!confirm(`Excluir a regra do sindicato "${regra.sindicato}"?`)){
+    return;
+  }
+
+  try{
+    await excluirRegraDaPlanilha(regra.sindicato);
+
+    DB.regras.splice(i,1);
+    await Store.set('regras', DB.regras);
+
+    if(regraEmEdicao === i){
+      cancelarEdicaoRegra();
+    }
+
+    renderRegras();
+
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível excluir a regra na planilha.\n\n' + e.message);
+  }
+};
+
+// ---------- RENDER: OPOSICOES ----------
+function renderOpos(){
+  document.getElementById('countOpos').textContent = DB.oposicoes.length + ' registros';
+  renderTable(document.getElementById('tblOpos'),
+    ['CPF','Nome','Ano','Ações'],
+    DB.oposicoes,
+    (o) => `<tr>
+      <td>${o.cpf}</td><td>${o.nome||'—'}</td><td>${o.ano}</td>
+      <td class="actions-cell"><button class="btn ghost small" onclick="window.__delOpos(${DB.oposicoes.indexOf(o)})">Excluir</button></td>
+    </tr>`
+  );
+}
+window.__delOpos = async function(i){
+  const oposicao = DB.oposicoes[i];
+  if(!oposicao) return;
+
+  if(!confirm(`Excluir a carta de oposição do CPF ${oposicao.cpf} para ${oposicao.ano}?`)){
+    return;
+  }
+
+  try{
+    await excluirOposicaoDaPlanilha(oposicao);
+
+    DB.oposicoes.splice(i,1);
+    await Store.set('oposicoes', DB.oposicoes);
+    renderOpos();
+
+  }catch(e){
+    console.error(e);
+    alert(
+      'Não foi possível excluir a carta de oposição na planilha.\n\n' +
+      e.message
+    );
+  }
+};
+
+// ---------- SELECTORS ----------
+function refreshSelectors(){
+  const sindicatosSet = new Set();
+  DB.colaboradores.forEach(c => c.sindicato && sindicatosSet.add(c.sindicato));
+  DB.sindicatosBase.forEach(s => s.sindicato && sindicatosSet.add(s.sindicato));
+  DB.regras.forEach(r => r.sindicato && sindicatosSet.add(r.sindicato));
+  const list = document.getElementById('listaSindicatos');
+  list.innerHTML = [...sindicatosSet].sort().map(s=>`<option value="${s}">`).join('');
+
+  const unidades = new Set(DB.colaboradores.map(c=>c.unidade).filter(Boolean));
+  const selUnidade = document.getElementById('cFiltroUnidade');
+  selUnidade.innerHTML = '<option value="">Todas</option>' + [...unidades].sort().map(u=>`<option value="${u}">${u}</option>`).join('');
+
+  const selSind = document.getElementById('cFiltroSindicato');
+  selSind.innerHTML = '<option value="">Todos</option>' + [...sindicatosSet].sort().map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+
+// ---------- CALCULO ----------
+function computeResultados(ano){
+  const oposSet = new Set(
+    DB.oposicoes
+      .filter(o => String(o.ano) === String(ano))
+      .map(o => normCPF(o.cpf))
+  );
+
+  const regraBySind = {};
+  DB.regras.forEach(r => {
+    regraBySind[stripAccentsLower(r.sindicato)] = r;
+  });
+
+  const baseLookup = {};
+  DB.sindicatosBase.forEach(s => {
+    const key =
+      stripAccentsLower(s.unidade) + '|' +
+      stripAccentsLower(s.funcao);
+
+    baseLookup[key] = s.sindicato;
+  });
+
+  const mesAtual = new Date().getMonth() + 1;
+
+  return DB.colaboradores.map(c => {
+
+    let sindicato = (c.sindicato || '').trim();
+
+    if(!sindicato){
+      const key =
+        stripAccentsLower(c.unidade) + '|' +
+        stripAccentsLower(c.funcao);
+
+      sindicato = baseLookup[key] || '';
+    }
+
+    const cpfKey = normCPF(c.cpf);
+
+    let status = 'A descontar';
+    let percentual = 0;
+    let parcelas = 1;
+    let meses = [];
+    let limite = null;
+    let valorTotal = 0;
+    let valorParcela = 0;
+
+    if(!sindicato){
+
+      status = 'Sindicato não identificado';
+
+    } else if(cpfKey && oposSet.has(cpfKey)){
+
+      status = 'Isento (carta de oposição)';
+
+    } else {
+
+      const regra = regraBySind[stripAccentsLower(sindicato)];
+
+      if(!regra){
+
+        status = 'Regra não cadastrada';
+
+      } else {
+
+        percentual = Number(regra.percentual) || 0;
+        parcelas = Number(regra.parcelas) || 1;
+
+        meses = (regra.meses && regra.meses.length)
+          ? [...new Set(regra.meses.map(Number))]
+              .filter(m => m >= 1 && m <= 12)
+              .sort((a,b) => a-b)
+          : [Number(regra.mes) || 1];
+
+        limite =
+          regra.limite !== null &&
+          regra.limite !== undefined &&
+          regra.limite !== ''
+            ? Number(regra.limite)
+            : null;
+
+        // O desconto só pode ser calculado no mês
+        // que estiver explicitamente cadastrado na regra.
+        if(!meses.includes(mesAtual)){
+
+          status = 'Fora do período de desconto';
+
+        } else {
+
+          valorTotal = c.salario * percentual / 100;
+
+          if(limite !== null && valorTotal > limite){
+            valorTotal = limite;
+          }
+
+          valorParcela = valorTotal / parcelas;
+        }
+      }
+    }
+
+    return {
+      ...c,
+      sindicatoResolvido: sindicato,
+      status,
+      percentual,
+      parcelas,
+      meses,
+      mesesTexto: mesesTexto(meses),
+      limite,
+      valorTotal,
+      valorParcela
+    };
+  });
+}
+
+function renderCalculo(){
+  const filtroUnidade = document.getElementById('cFiltroUnidade').value;
+  const filtroSindicato = document.getElementById('cFiltroSindicato').value;
+  const filtroStatus = document.getElementById('cFiltroStatus').value;
+  const busca = (document.getElementById('cBusca')?.value || '').trim().toLowerCase();
+
+  let data = ultimoResultado.filter(r=>{
+    if(filtroUnidade && r.unidade !== filtroUnidade) return false;
+    if(filtroSindicato && r.sindicatoResolvido !== filtroSindicato) return false;
+    if(filtroStatus && r.status !== filtroStatus) return false;
+
+    if(busca){
+      const texto = [
+        r.unidade, r.colaborador, r.cpf, r.funcao,
+        r.cargo, r.sindicatoResolvido, r.status
+      ].join(' ').toLowerCase();
+
+      if(!texto.includes(busca)) return false;
+    }
+
+    return true;
+  });
+
+  document.getElementById('countCalc').textContent = data.length + ' registros';
+
+  const badgeClass = s =>
+    s === 'A descontar' ? 'ok' :
+    s === 'Isento (carta de oposição)' ? 'isento' :
+    'erro';
+
+  renderTable(document.getElementById('tblCalc'),
+    ['Unidade','Colaborador','CPF','Função','Sindicato','Salário','%','Valor total','Parcelas','Valor/parcela','Mês(es)','Status'],
+    data,
+    r => `<tr>
+      <td>${r.unidade}</td><td>${r.colaborador}</td><td>${r.cpf}</td><td>${r.funcao}</td>
+      <td>${r.sindicatoResolvido || '—'}</td><td>${fmtMoney(r.salario)}</td>
+      <td>${r.percentual || '—'}${r.percentual? '%':''}</td>
+      <td>${r.valorTotal ? fmtMoney(r.valorTotal) : '—'}</td>
+      <td>${r.status==='A descontar' ? r.parcelas : '—'}</td>
+      <td>${r.valorParcela ? fmtMoney(r.valorParcela) : '—'}</td>
+      <td>${r.mesesTexto}</td>
+      <td><span class="badge ${badgeClass(r.status)}">${r.status}</span></td>
+    </tr>`
+  );
+
+  const stats = document.getElementById('stats');
+  stats.style.display='grid';
+  document.getElementById('stTotal').textContent = data.length;
+  document.getElementById('stDesconto').textContent = data.filter(r=>r.status==='A descontar').length;
+  document.getElementById('stIsentos').textContent = data.filter(r=>r.status==='Isento (carta de oposição)').length;
+  document.getElementById('stPendentes').textContent =
+    data.filter(r =>
+      r.status === 'Regra não cadastrada' ||
+      r.status === 'Sindicato não identificado' ||
+      r.status === 'Fora do período de desconto'
+    ).length;
+  document.getElementById('stValor').textContent = fmtMoney(data.reduce((s,r)=>s+(r.valorTotal||0),0));
+}
+
+// ---------- EXPORT CSV ----------
+function exportCSV(){
+  const filtroUnidade = document.getElementById('cFiltroUnidade').value;
+  const filtroSindicato = document.getElementById('cFiltroSindicato').value;
+  const filtroStatus = document.getElementById('cFiltroStatus').value;
+  const busca = (document.getElementById('cBusca')?.value || '').trim().toLowerCase();
+  let data = ultimoResultado.filter(r=>{
+    if(filtroUnidade && r.unidade !== filtroUnidade) return false;
+    if(filtroSindicato && r.sindicatoResolvido !== filtroSindicato) return false;
+    if(filtroStatus && r.status !== filtroStatus) return false;
+
+    if(busca){
+      const texto = [r.unidade,r.colaborador,r.cpf,r.funcao,r.cargo,r.sindicatoResolvido,r.status]
+        .join(' ').toLowerCase();
+      if(!texto.includes(busca)) return false;
+    }
+
+    return true;
+  });
+  if(!data.length){ alert('Nenhum resultado para exportar. Calcule primeiro.'); return; }
+  const headers = ['Unidade','Colaborador','CPF','Cargo','Funcao','Sindicato','Salario','Percentual','ValorTotal','Parcelas','ValorParcela','Meses','Status'];
+  const lines = [headers.join(';')];
+  data.forEach(r=>{
+    lines.push([r.unidade,r.colaborador,r.cpf,r.cargo,r.funcao,r.sindicatoResolvido,
+      r.salario.toFixed(2).replace('.',','),
+      r.percentual, (r.valorTotal||0).toFixed(2).replace('.',','),
+      r.status==='A descontar'?r.parcelas:'', (r.valorParcela||0).toFixed(2).replace('.',','),
+      r.mesesTexto, r.status
+    ].map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(';'));
+  });
+  const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'desconto-sindical-'+document.getElementById('cAno').value+'.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- TABS ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- EVENTS: FILTROS ----------
+['cBusca','cFiltroUnidade','cFiltroSindicato','cFiltroStatus'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el){
+    el.addEventListener('input', renderCalculo);
+    el.addEventListener('change', renderCalculo);
+  }
+});
+
+document.getElementById('cAno').addEventListener('input', ()=>{
+  document.getElementById('headerAno').textContent =
+    document.getElementById('cAno').value;
+});
+
+// ---------- EVENTS: DADOS ----------
+document.getElementById('btnRefreshAll').addEventListener('click', loadBasesFromApi);
+
+// ---------- EVENTS: REGRAS ----------
+document.getElementById('btnAddRegra').addEventListener('click', async ()=>{
+  const sindicato = document.getElementById('rSindicato').value.trim();
+  const percentual = parseFloat(document.getElementById('rPercentual').value);
+  const parcelas = parseInt(document.getElementById('rParcelas').value) || 1;
+  const meses = getMesesSelecionados();
+  const limiteRaw = document.getElementById('rLimite').value;
+  const limite = limiteRaw ? parseFloat(limiteRaw) : null;
+
+  if(!sindicato || isNaN(percentual)){
+    alert('Informe ao menos o sindicato e o percentual.');
+    return;
+  }
+
+  if(!parcelas || parcelas < 1){
+    alert('Informe uma quantidade de parcelas válida.');
+    return;
+  }
+
+  if(meses.length !== parcelas){
+    alert(
+      `Selecione exatamente ${parcelas} ${parcelas === 1 ? 'mês' : 'meses'} para as ${parcelas} ${parcelas === 1 ? 'parcela' : 'parcelas'}.`
+    );
+    return;
+  }
+
+  const regra = {
+    sindicato,
+    percentual,
+    parcelas,
+    meses,
+    // Mantém o campo antigo para compatibilidade com versões anteriores.
+    mes: meses[0],
+    limite
+  };
+
+  const btn = document.getElementById('btnAddRegra');
+  const textoOriginal = btn.textContent;
+
+  try{
+    btn.disabled = true;
+    btn.textContent = regraEmEdicao === null
+      ? 'Salvando...'
+      : 'Atualizando...';
+
+    await salvarRegraNaPlanilha(regra);
+
+    if(regraEmEdicao !== null){
+      DB.regras[regraEmEdicao] = regra;
+    }else{
+      const existente = DB.regras.findIndex(
+        r => stripAccentsLower(r.sindicato) === stripAccentsLower(sindicato)
+      );
+
+      if(existente >= 0){
+        DB.regras[existente] = regra;
+      }else{
+        DB.regras.push(regra);
+      }
+    }
+
+    await Store.set('regras', DB.regras);
+
+    cancelarEdicaoRegra();
+    renderRegras();
+
+  }catch(e){
+    console.error(e);
+    alert(
+      'Não foi possível salvar a regra na planilha.\n\n' +
+      e.message
+    );
+  }finally{
+    btn.disabled = false;
+    btn.textContent = regraEmEdicao === null
+      ? textoOriginal
+      : 'Atualizar regra';
+  }
+});
+
+document.getElementById('btnCancelRegra').addEventListener(
+  'click',
+  cancelarEdicaoRegra
+);
+
+// Atualiza o limite de seleção de meses conforme as parcelas.
+document.getElementById('rParcelas').addEventListener(
+  'input',
+  atualizarEstadoMeses
+);
+
+document.querySelectorAll('#rMeses input[type="checkbox"]').forEach(cb => {
+  cb.addEventListener('change', atualizarEstadoMeses);
+});
+
+document.getElementById('rParcelas').addEventListener('input', atualizarEstadoMeses);
+
+document.getElementById('monthPickerBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const picker = document.getElementById('monthPicker');
+  const open = picker.classList.toggle('open');
+  e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false');
+});
+
+document.getElementById('monthPickerMenu').addEventListener('click', e=>{
+  e.stopPropagation();
+});
+
+document.getElementById('monthPickerClear').addEventListener('click', ()=>{
+  document.querySelectorAll('#rMeses input[type="checkbox"]').forEach(cb => {
+    cb.checked = false;
+  });
+  atualizarEstadoMeses();
+});
+
+document.addEventListener('click', fecharSeletorMeses);
+
+atualizarEstadoMeses();
+
+
+// ---------- EVENTS: OPOSICAO ----------
+document.getElementById('btnAddOpos').addEventListener('click', async ()=>{
+
+  const cpf = document.getElementById('oCpf').value.trim();
+  const nome = document.getElementById('oNome').value.trim();
+  const ano = document.getElementById('oAno').value.trim();
+
+  if(!cpf || !ano){
+    alert('Informe CPF e ano.');
+    return;
+  }
+
+  const oposicao = {
+    cpf,
+    nome,
+    ano
+  };
+
+  const btn = document.getElementById('btnAddOpos');
+  const textoOriginal = btn.textContent;
+
+  try{
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    const retorno = await salvarOposicaoNaPlanilha(oposicao);
+
+    // Substitui registro local com mesmo CPF + ano, se existir.
+    const existente = DB.oposicoes.findIndex(o =>
+      normCPF(o.cpf) === normCPF(cpf) &&
+      String(o.ano) === String(ano)
+    );
+
+    if(existente >= 0){
+      DB.oposicoes[existente] = oposicao;
+    }else{
+      DB.oposicoes.push(oposicao);
+    }
+
+    await Store.set('oposicoes', DB.oposicoes);
+
+    renderOpos();
+
+    document.getElementById('oCpf').value = '';
+    document.getElementById('oNome').value = '';
+
+    document.getElementById('msgOpos').textContent =
+      retorno.acao === 'atualizado'
+        ? 'Oposição atualizada na planilha.'
+        : 'Oposição registrada na planilha.';
+
+  }catch(e){
+
+    console.error(e);
+
+    alert(
+      'Não foi possível salvar a carta de oposição na planilha.\\n\\n' +
+      e.message
+    );
+
+  }finally{
+
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+
+  }
+});
+
+
+document.getElementById('btnImportOpos').addEventListener('click', async ()=>{
+
+  const txt = document.getElementById('pasteOpos').value;
+
+  if(!txt.trim()){
+    return;
+  }
+
+  const rows = parseCSV(txt);
+
+  const oposicoes = [];
+
+  rows.forEach(r => {
+
+    if(!r[0] || !r[1]){
+      return;
+    }
+
+    oposicoes.push({
+      cpf: r[0].trim(),
+      ano: (r[1] || '').trim(),
+      nome: (r[2] || '').trim()
+    });
+
+  });
+
+  if(!oposicoes.length){
+    alert('Nenhuma oposição válida encontrada.');
+    return;
+  }
+
+  const btn = document.getElementById('btnImportOpos');
+  const textoOriginal = btn.textContent;
+
+  try{
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    await salvarOposicoesNaPlanilha(oposicoes);
+
+    // Atualiza a base local sem duplicar CPF + ano.
+    oposicoes.forEach(oposicao => {
+
+      const existente = DB.oposicoes.findIndex(o =>
+        normCPF(o.cpf) === normCPF(oposicao.cpf) &&
+        String(o.ano) === String(oposicao.ano)
+      );
+
+      if(existente >= 0){
+        DB.oposicoes[existente] = oposicao;
+      }else{
+        DB.oposicoes.push(oposicao);
+      }
+
+    });
+
+    await Store.set('oposicoes', DB.oposicoes);
+
+    renderOpos();
+
+    document.getElementById('msgOpos').textContent =
+      `${oposicoes.length} registro(s) salvo(s) na planilha.`;
+
+    document.getElementById('pasteOpos').value = '';
+
+  }catch(e){
+
+    console.error(e);
+
+    alert(
+      'Não foi possível importar as cartas de oposição para a planilha.\\n\\n' +
+      e.message
+    );
+
+  }finally{
+
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+
+  }
+});
+
+// ---------- EVENTS: CALCULO ----------
+document.getElementById('btnCalcular').addEventListener('click', ()=>{
+  const ano = document.getElementById('cAno').value;
+  ultimoResultado = computeResultados(ano);
+  renderCalculo();
+});
+['cFiltroUnidade','cFiltroSindicato','cFiltroStatus'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', renderCalculo);
+});
+document.getElementById('btnExportar').addEventListener('click', exportCSV);
+
+// ---------- INIT ----------
+(async function init(){
+  // Carrega rapidamente a última versão local para o painel não ficar vazio.
+  DB.colaboradores = (await Store.get('colaboradores')) || [];
+  DB.sindicatosBase = (await Store.get('sindicatosBase')) || [];
+  DB.regras = (await Store.get('regras')) || [];
+  DB.oposicoes = (await Store.get('oposicoes')) || [];
+
+  renderRegras();
+  renderOpos();
+  document.getElementById('headerAno').textContent = document.getElementById('cAno').value;
+  cancelarEdicaoRegra();
+
+  // Depois atualiza os dados oficiais do App Web.
+  // Colaboradores e sindicatos são buscados em paralelo.
+  await loadBasesFromApi();
+})();
+
+})();
+</script>
+</body>
+</html>
