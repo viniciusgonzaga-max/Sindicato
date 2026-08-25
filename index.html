@@ -510,7 +510,7 @@ const BASE_COLABORADORES_API =
 
 const MESES = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-const DB = { colaboradores:[], sindicatosBase:[], regras:[], oposicoes:[] };
+const DB = { colaboradores:[], sindicatosBase:[], regras:[], oposicoes:[], historico:[] };
 let ultimoResultado = [];
 let regraEmEdicao = null;
 
@@ -636,6 +636,7 @@ const excluirRegraDaPlanilha   = sindicato  => postAction('excluirRegra', { sind
 const salvarOposicaoNaPlanilha = oposicao   => postAction('salvarOposicao', { oposicao });
 const salvarOposicoesNaPlanilha= oposicoes  => postAction('salvarOposicoes', { oposicoes });
 const excluirOposicaoDaPlanilha= oposicao   => postAction('excluirOposicao', { cpf: oposicao.cpf, ano: oposicao.ano });
+const salvarHistoricosNaPlanilha = historicos => postAction('salvarHistoricos', { historicos });
 
 async function loadBasesFromApi(){
   const btn = document.getElementById('btnRefreshAll');
@@ -650,11 +651,12 @@ async function loadBasesFromApi(){
     DB.sindicatosBase = importSindicatosBase(normalizeApiPayload(payload?.sindicatos ?? []));
     DB.regras         = importRegrasFromApi(normalizeApiPayload(payload?.regras ?? []));
     DB.oposicoes      = importOposFromApi(normalizeApiPayload(payload?.oposicoes ?? []));
+    DB.historico      = importHistoricoFromApi(normalizeApiPayload(payload?.historico ?? []));
 
     renderRegras();
     renderOpos();
     refreshSelectors();
-    recalcular();
+    await recalcular();
   } catch(e) {
     console.error('Erro ao atualizar dados:', e);
     alert('Erro ao carregar os dados da planilha:\n\n' + e.message);
@@ -779,6 +781,84 @@ function importOposFromApi(rows){
     out.push({ cpf, nome, ano });
   }
   return out;
+}
+
+
+// ======================================================
+// HISTÓRICO DE DESCONTOS
+// ======================================================
+function importHistoricoFromApi(rows){
+  if(!rows || rows.length < 2) return [];
+
+  const headers = rows[0].map(normalizeHeader);
+  const idx = {
+    ano: findCol(headers,['ano','anoreferencia']),
+    mes: findCol(headers,['mes','mesreferencia']),
+    cpf: findCol(headers,['cpf']),
+    colaborador: findCol(headers,['colaborador','nome','funcionario']),
+    sindicato: findCol(headers,['sindicato']),
+    salario: findCol(headers,['salario']),
+    percentual: findCol(headers,['percentual','aliquota']),
+    limite: findCol(headers,['limite','valorlimite']),
+    valorTeorico: findCol(headers,['valorteorico','valorcalculado']),
+    valorDesconto: findCol(headers,['valordesconto','valorparcela','desconto']),
+    parcela: findCol(headers,['parcela']),
+    parcelas: findCol(headers,['parcelas']),
+    acumuladoAnterior: findCol(headers,['acumuladoanterior']),
+    acumuladoDepois: findCol(headers,['acumuladodepois']),
+    dataCalculo: findCol(headers,['datacalculo','data'])
+  };
+
+  const out = [];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    const cpf = cell(r,idx.cpf);
+    const ano = String(cell(r,idx.ano) || '').trim();
+    const mes = parseInt(cell(r,idx.mes),10) || 0;
+    if(!cpf || !ano || !mes) continue;
+
+    out.push({
+      ano,
+      mes,
+      cpf,
+      colaborador: cell(r,idx.colaborador),
+      sindicato: cell(r,idx.sindicato),
+      salario: parseNumber(cell(r,idx.salario)),
+      percentual: parseNumber(cell(r,idx.percentual)),
+      limite: cell(r,idx.limite)==='' ? null : parseNumber(cell(r,idx.limite)),
+      valorTeorico: parseNumber(cell(r,idx.valorTeorico)),
+      valorDesconto: parseNumber(cell(r,idx.valorDesconto)),
+      parcela: parseInt(cell(r,idx.parcela),10) || 1,
+      parcelas: parseInt(cell(r,idx.parcelas),10) || 1,
+      acumuladoAnterior: parseNumber(cell(r,idx.acumuladoAnterior)),
+      acumuladoDepois: parseNumber(cell(r,idx.acumuladoDepois)),
+      dataCalculo: cell(r,idx.dataCalculo)
+    });
+  }
+  return out;
+}
+
+function chaveHistorico(ano, mes, cpf, sindicato){
+  return [
+    String(ano),
+    Number(mes),
+    normCPF(cpf),
+    stripAccentsLower(sindicato)
+  ].join('|');
+}
+
+function historicoDoColaborador(ano, cpf, sindicato){
+  const mesAtual = new Date().getMonth() + 1;
+  const anoAtual = String(ano);
+
+  return DB.historico.filter(h =>
+    String(h.ano) === anoAtual &&
+    Number(h.mes) >= 1 &&
+    Number(h.mes) <= 12 &&
+    Number(h.mes) < mesAtual &&
+    normCPF(h.cpf) === normCPF(cpf) &&
+    stripAccentsLower(h.sindicato) === stripAccentsLower(sindicato)
+  );
 }
 
 // ======================================================
@@ -980,6 +1060,7 @@ function computeResultados(ano){
   const oposSet = new Set(
     DB.oposicoes.filter(o => String(o.ano) === String(ano)).map(o => normCPF(o.cpf))
   );
+
   const regraBySind = {};
   DB.regras.forEach(r => { regraBySind[stripAccentsLower(r.sindicato)] = r; });
 
@@ -988,52 +1069,212 @@ function computeResultados(ano){
     baseLookup[stripAccentsLower(s.unidade) + '|' + stripAccentsLower(s.funcao)] = s.sindicato;
   });
 
+  // O mês de referência é sempre o mês corrente.
   const mesAtual = new Date().getMonth() + 1;
 
   return DB.colaboradores.map(c => {
     let sindicato = (c.sindicato || '').trim();
+
     if(!sindicato){
-      sindicato = baseLookup[stripAccentsLower(c.unidade) + '|' + stripAccentsLower(c.funcao)] || '';
+      sindicato = baseLookup[
+        stripAccentsLower(c.unidade) + '|' + stripAccentsLower(c.funcao)
+      ] || '';
     }
 
     const cpfKey = normCPF(c.cpf);
-    let status = 'A descontar', percentual = 0, parcelas = 1, meses = [], limite = null, valorTotal = 0, valorParcela = 0;
+
+    let status = 'A descontar';
+    let percentual = 0;
+    let parcelas = 1;
+    let meses = [];
+    let limite = null;
+    let valorTotal = 0;
+    let valorParcela = 0;
+    let valorTeoricoParcela = 0;
+    let acumuladoAnterior = 0;
+    let acumuladoDepois = 0;
+    let limiteRestante = null;
 
     if(!sindicato){
       status = 'Sindicato não identificado';
+
     } else if(cpfKey && oposSet.has(cpfKey)){
       status = 'Isento (carta de oposição)';
+
     } else {
       const regra = regraBySind[stripAccentsLower(sindicato)];
+
       if(!regra){
         status = 'Regra não cadastrada';
+
       } else {
         percentual = Number(regra.percentual) || 0;
         parcelas = Number(regra.parcelas) || 1;
-        meses = (regra.meses && regra.meses.length)
-          ? [...new Set(regra.meses.map(Number))].filter(m => m >= 1 && m <= 12).sort((a,b) => a-b)
-          : [Number(regra.mes) || 1];
-        limite = (regra.limite !== null && regra.limite !== undefined && regra.limite !== '') ? Number(regra.limite) : null;
 
-        // O desconto só é aplicado no(s) mês(es) explicitamente cadastrado(s) na regra.
+        meses = (regra.meses && regra.meses.length)
+          ? [...new Set(regra.meses.map(Number))]
+              .filter(m => m >= 1 && m <= 12)
+              .sort((a,b) => a-b)
+          : [Number(regra.mes) || 1];
+
+        limite =
+          regra.limite !== null &&
+          regra.limite !== undefined &&
+          regra.limite !== ''
+            ? Number(regra.limite)
+            : null;
+
+        // O desconto só é aplicado no(s) mês(es) explicitamente cadastrado(s).
         if(!meses.includes(mesAtual)){
           status = 'Fora do período de desconto';
+
         } else {
-          valorTotal = c.salario * percentual / 100;
-          if(limite !== null && valorTotal > limite) valorTotal = limite;
-          valorParcela = valorTotal / parcelas;
+          // Soma somente os descontos de meses anteriores.
+          // O registro do mês atual será substituído/atualizado no histórico.
+          const historicosAnteriores =
+            historicoDoColaborador(
+              ano,
+              cpfKey,
+              sindicato
+            );
+
+          acumuladoAnterior = historicosAnteriores.reduce(
+            (s, h) => s + (Number(h.valorDesconto) || 0),
+            0
+          );
+
+          // Valor da parcela sem considerar o limite.
+          valorTeoricoParcela =
+            (Number(c.salario) || 0) *
+            percentual / 100 /
+            parcelas;
+
+          valorParcela = valorTeoricoParcela;
+
+          // O limite é acumulado entre as parcelas.
+          if(limite !== null){
+            limiteRestante = Math.max(
+              0,
+              limite - acumuladoAnterior
+            );
+
+            valorParcela = Math.min(
+              valorTeoricoParcela,
+              limiteRestante
+            );
+          }
+
+          // Valor total original da regra, apenas para referência visual.
+          valorTotal =
+            (Number(c.salario) || 0) *
+            percentual / 100;
+
+          if(limite !== null){
+            valorTotal = Math.min(
+              valorTotal,
+              limite
+            );
+          }
+
+          acumuladoDepois =
+            acumuladoAnterior + valorParcela;
         }
       }
     }
 
-    return { ...c, sindicatoResolvido: sindicato, status, percentual, parcelas, meses,
-      mesesTexto: mesesTexto(meses), limite, valorTotal, valorParcela };
+    return {
+      ...c,
+      sindicatoResolvido: sindicato,
+      status,
+      percentual,
+      parcelas,
+      meses,
+      mesesTexto: mesesTexto(meses),
+      limite,
+      valorTotal,
+      valorParcela,
+      valorTeoricoParcela,
+      acumuladoAnterior,
+      acumuladoDepois,
+      limiteRestante
+    };
   });
 }
 
-function recalcular(){
-  ultimoResultado = computeResultados(document.getElementById('cAno').value);
+async function salvarHistoricoResultados(resultados, ano){
+  const mesAtual = new Date().getMonth() + 1;
+
+  const registros = resultados
+    .filter(r =>
+      r.status === 'A descontar' &&
+      normCPF(r.cpf) &&
+      r.sindicatoResolvido
+    )
+    .map(r => ({
+      ano: String(ano),
+      mes: mesAtual,
+      cpf: normCPF(r.cpf),
+      colaborador: r.colaborador || '',
+      sindicato: r.sindicatoResolvido || '',
+      salario: Number(r.salario) || 0,
+      percentual: Number(r.percentual) || 0,
+      limite: r.limite === null || r.limite === undefined ? '' : Number(r.limite),
+      valorTeorico: Number(r.valorTeoricoParcela) || 0,
+      valorDesconto: Number(r.valorParcela) || 0,
+      parcela: r.meses && r.meses.length
+        ? (r.meses.indexOf(mesAtual) + 1)
+        : 1,
+      parcelas: Number(r.parcelas) || 1,
+      acumuladoAnterior: Number(r.acumuladoAnterior) || 0,
+      acumuladoDepois: Number(r.acumuladoDepois) || 0
+    }));
+
+  if(!registros.length) return;
+
+  await salvarHistoricosNaPlanilha(registros);
+
+  // Atualiza o cache local imediatamente, sem precisar de novo GET.
+  registros.forEach(registro => {
+    const key = chaveHistorico(
+      registro.ano,
+      registro.mes,
+      registro.cpf,
+      registro.sindicato
+    );
+
+    const index = DB.historico.findIndex(h =>
+      chaveHistorico(h.ano,h.mes,h.cpf,h.sindicato) === key
+    );
+
+    if(index >= 0){
+      DB.historico[index] = registro;
+    }else{
+      DB.historico.push(registro);
+    }
+  });
+}
+
+async function recalcular(){
+  const ano = document.getElementById('cAno').value;
+  ultimoResultado = computeResultados(ano);
   renderCalculo();
+
+  try{
+    await salvarHistoricoResultados(ultimoResultado, ano);
+
+    // Recalcula novamente após gravar o mês atual.
+    // O mês atual é excluído do acumulado anterior, então isso
+    // apenas mantém a tela sincronizada com o histórico salvo.
+    ultimoResultado = computeResultados(ano);
+    renderCalculo();
+
+  }catch(e){
+    console.error('Erro ao salvar histórico:', e);
+    alert(
+      'O cálculo foi realizado, mas não foi possível salvar o histórico na aba "Historico".\n\n' +
+      e.message
+    );
+  }
 }
 
 function filtrarResultados(){
@@ -1064,14 +1305,15 @@ function renderCalculo(){
     s === 'Isento (carta de oposição)' ? 'isento' : 'erro';
 
   renderTable(document.getElementById('tblCalc'),
-    ['Unidade','Colaborador','CPF','Função','Sindicato','Salário','%','Valor total','Parcelas','Valor/parcela','Mês(es)','Status'],
+    ['Unidade','Colaborador','CPF','Função','Sindicato','Salário','%','Valor regra','Acumulado','Limite restante','Parcela atual','Mês(es)','Status'],
     data,
     r => `<tr>
       <td>${escapeHtml(r.unidade)}</td><td>${escapeHtml(r.colaborador)}</td><td>${escapeHtml(r.cpf)}</td><td>${escapeHtml(r.funcao)}</td>
       <td>${escapeHtml(r.sindicatoResolvido) || '—'}</td><td>${fmtMoney(r.salario)}</td>
       <td>${r.percentual || '—'}${r.percentual? '%':''}</td>
       <td>${r.valorTotal ? fmtMoney(r.valorTotal) : '—'}</td>
-      <td>${r.status==='A descontar' ? r.parcelas : '—'}</td>
+      <td>${r.status==='A descontar' ? fmtMoney(r.acumuladoDepois) : '—'}</td>
+      <td>${r.limite !== null && r.limite !== undefined ? fmtMoney(Math.max(0, r.limiteRestante ?? r.limite)) : '—'}</td>
       <td>${r.valorParcela ? fmtMoney(r.valorParcela) : '—'}</td>
       <td>${r.mesesTexto}</td>
       <td><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status)}</span></td>
@@ -1096,13 +1338,15 @@ function exportCSV(){
   const data = filtrarResultados();
   if(!data.length){ alert('Nenhum resultado para exportar. Calcule primeiro.'); return; }
 
-  const headers = ['Unidade','Colaborador','CPF','Cargo','Funcao','Sindicato','Salario','Percentual','ValorTotal','Parcelas','ValorParcela','Meses','Status'];
+  const headers = ['Unidade','Colaborador','CPF','Cargo','Funcao','Sindicato','Salario','Percentual','ValorRegra','Acumulado','LimiteRestante','ValorParcela','Meses','Status'];
   const lines = [headers.join(';')];
   data.forEach(r=>{
     lines.push([r.unidade,r.colaborador,r.cpf,r.cargo,r.funcao,r.sindicatoResolvido,
       r.salario.toFixed(2).replace('.',','),
       r.percentual, (r.valorTotal||0).toFixed(2).replace('.',','),
-      r.status==='A descontar'?r.parcelas:'', (r.valorParcela||0).toFixed(2).replace('.',','),
+      (r.acumuladoDepois||0).toFixed(2).replace('.',','),
+      r.limite !== null && r.limite !== undefined ? (Math.max(0, r.limiteRestante ?? r.limite)).toFixed(2).replace('.',',') : '',
+      (r.valorParcela||0).toFixed(2).replace('.',','),
       r.mesesTexto, r.status
     ].map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(';'));
   });
@@ -1140,7 +1384,18 @@ document.getElementById('cAno').addEventListener('input', ()=>{
 document.getElementById('btnToggleFilters').addEventListener('click', ()=>{
   document.getElementById('advancedFilters').classList.toggle('open');
 });
-document.getElementById('btnCalcular').addEventListener('click', recalcular);
+document.getElementById('btnCalcular').addEventListener('click', async ()=>{
+  const btn = document.getElementById('btnCalcular');
+  const original = btn.textContent;
+  try{
+    btn.disabled = true;
+    btn.textContent = 'Calculando...';
+    await recalcular();
+  }finally{
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+});
 document.getElementById('btnExportar').addEventListener('click', exportCSV);
 document.getElementById('btnRefreshAll').addEventListener('click', loadBasesFromApi);
 
@@ -1314,7 +1569,7 @@ document.getElementById('tblOpos').addEventListener('click', e=>{
   document.getElementById('headerAno').textContent = document.getElementById('cAno').value;
   cancelarEdicaoRegra();
   atualizarEstadoMeses();
-  await loadBasesFromApi(); // já dispara o cálculo automaticamente ao final.
+  await loadBasesFromApi(); // carrega bases + histórico e calcula/salva o mês atual.
 })();
 
 })();
