@@ -109,7 +109,7 @@
   /* ===== REGRAS FORM GRID ===== */
   .rules-form{
     display:grid;
-    grid-template-columns:minmax(190px,1.3fr) minmax(150px,.9fr) 90px minmax(230px,1.3fr) minmax(160px,.95fr) auto auto;
+    grid-template-columns:minmax(180px,1.2fr) minmax(160px,.9fr) minmax(130px,.8fr) 120px minmax(220px,1.2fr) minmax(150px,.9fr) auto auto;
     gap:12px;align-items:end;
   }
   .rules-form .field{min-width:0;}
@@ -182,6 +182,26 @@
   .badge.ok{background:var(--orange-soft);color:#C27A00;}
   .badge.isento{background:var(--green-soft);color:#11996D;}
   .badge.erro{background:var(--red-soft);color:#D52B3D;}
+  .badge.nao-associado{background:var(--red-soft);color:#D52B3D;}
+  .badge.associado{background:var(--green-soft);color:#11996D;}
+  .card.collapsible .card-body{display:block;}
+  .card.collapsible.collapsed .card-body{display:none;}
+  .collapse-btn{
+    border:1px solid var(--border);background:#fff;color:#667085;border-radius:8px;
+    padding:7px 11px;font-size:12px;font-weight:700;cursor:pointer;
+  }
+  .collapse-btn:hover{background:#F5F6F8;}
+  .section-toolbar{
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .section-toolbar h2{margin:0;}
+  .search-filter{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    margin:14px 18px 0;
+  }
+  .search-filter .search-box{flex:1;min-width:240px;}
+  .search-filter input{width:100%;height:40px;background:var(--bg);}
+
 
   .toolbar{
     display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
@@ -257,6 +277,58 @@
     .page-heading{gap:12px;align-items:flex-start;}
     .advanced-filters.open{flex-wrap:wrap;}
   }
+
+/* Campos específicos do Desconto Sindical */
+.rules-form.anuidade-mode #rParcelasField,
+.rules-form.anuidade-mode #rMesesField {
+  display: none !important;
+}
+
+/* A opção de contribuição é EXCLUSIVA da Anuidade Sindical.
+   Não dependemos apenas do atributo hidden, pois o formulário
+   usa display:flex nos campos. */
+.rules-form:not(.anuidade-mode) #rContribuicaoField {
+  display: none !important;
+}
+
+.rules-form.anuidade-mode #rContribuicaoField {
+  display: flex !important;
+}
+
+#rContribuicaoField[hidden] {
+  display: none !important;
+}
+
+/* Reorganiza o formulário quando for Anuidade */
+.rules-form.anuidade-mode {
+  grid-template-columns: minmax(180px,1.2fr) minmax(160px,.9fr) minmax(130px,.8fr) minmax(150px,.9fr) auto auto !important;
+}
+
+
+.associado-sim{
+  background:#dcfce7 !important;
+  color:#166534 !important;
+  border:1px solid #86efac !important;
+}
+.associado-nao{
+  background:#fee2e2 !important;
+  color:#b91c1c !important;
+  border:1px solid #fca5a5 !important;
+}
+.card-body.collapsed{
+  display:none !important;
+}
+.search-filter{
+  display:flex;
+  gap:10px;
+  margin:12px 0 14px;
+}
+.search-box{
+  flex:1;
+}
+.search-box input{
+  width:100%;
+}
 </style>
 </head>
 <body>
@@ -287,6 +359,7 @@
     <button data-tab="calculo" class="active">Cálculo</button>
     <button data-tab="regras">Regras</button>
     <button data-tab="oposicao">Cartas de Oposição</button>
+    <button data-tab="associados">Associados</button>
   </div>
 </nav>
 
@@ -387,24 +460,45 @@
   </section>
 
   <section class="panel" id="tab-regras">
-    <div class="card">
-      <h2>Cadastrar regra de desconto por sindicato</h2>
-      <p class="hint">Uma regra por sindicato. Informe exatamente em quais meses cada parcela será descontada. Cadastrar novamente um sindicato já existente substitui a regra anterior.</p>
+    <div class="card collapsible" id="cardCadastroRegra">
+      <div class="section-toolbar">
+        <div>
+          <h2>Cadastrar regra sindical</h2>
+          <p class="hint" style="margin:3px 0 0;">
+            As regras de <strong>Desconto Sindical</strong> continuam independentes das regras de
+            <strong>Anuidade Sindical</strong>. Para Anuidade, informe somente sindicato, percentual e valor limite.
+          </p>
+        </div>
+        <button class="collapse-btn" type="button" id="btnMinRegra">− Minimizar</button>
+      </div>
+
+      <div class="card-body" id="bodyCadastroRegra">
       <div class="row rules-form">
         <div class="field grow">
           <label>Sindicato</label>
           <input type="text" id="rSindicato" list="listaSindicatos" placeholder="Ex: SINPRO / Sindicato dos Professores...">
           <datalist id="listaSindicatos"></datalist>
         </div>
+
         <div class="field">
-          <label>Percentual de desconto (%)</label>
+          <label>Tipo de regra</label>
+          <select id="rTipo">
+            <option value="Desconto Sindical">Desconto Sindical</option>
+            <option value="Anuidade Sindical">Anuidade Sindical</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Percentual (%)</label>
           <input type="number" id="rPercentual" step="0.01" min="0" placeholder="Ex: 1">
         </div>
-        <div class="field">
+
+        <div class="field" id="rParcelasField">
           <label>Qtd. de parcelas</label>
           <input type="number" id="rParcelas" min="1" step="1" value="1">
         </div>
-        <div class="field month-field">
+
+        <div class="field month-field" id="rMesesField">
           <label>Meses do desconto</label>
           <div class="month-picker" id="monthPicker">
             <button type="button" class="month-picker-btn" id="monthPickerBtn" aria-expanded="false">
@@ -440,12 +534,26 @@
           </div>
           <small id="rMesesHint" class="field-hint">Escolha os meses em que cada parcela será descontada.</small>
         </div>
+
         <div class="field">
-          <label>Valor limite de desconto (R$)</label>
+          <label>Valor limite (R$)</label>
           <input type="number" id="rLimite" step="0.01" min="0" placeholder="Opcional">
         </div>
+
+        <div class="field" id="rContribuicaoField" hidden>
+          <label>Desconta contribuição sindical também?</label>
+          <select id="rContribuicao">
+            <option value="Sim">Sim</option>
+            <option value="Não">Não</option>
+          </select>
+          <small class="field-hint">
+            Para Anuidade Sindical: "Sim" permite os dois descontos; "Não" impede o desconto sindical para o associado.
+          </small>
+        </div>
+
         <button class="btn gold" id="btnAddRegra">Salvar regra</button>
         <button class="btn ghost" id="btnCancelRegra" type="button" style="display:none;">Cancelar</button>
+      </div>
       </div>
     </div>
 
@@ -459,9 +567,15 @@
   </section>
 
   <section class="panel" id="tab-oposicao">
-    <div class="card">
-      <h2>Registrar carta de oposição</h2>
-      <p class="hint">Colaboradores com carta de oposição registrada para o ano do desconto ficam isentos automaticamente no cálculo.</p>
+    <div class="card collapsible" id="cardCadastroOposicao">
+      <div class="section-toolbar">
+        <div>
+          <h2>Registrar carta de oposição</h2>
+          <p class="hint" style="margin:3px 0 0;">Colaboradores com carta de oposição registrada para o ano do desconto ficam isentos automaticamente no cálculo.</p>
+        </div>
+        <button class="collapse-btn" type="button" id="btnMinOposicao">− Minimizar</button>
+      </div>
+      <div class="card-body" id="bodyCadastroOposicao">
       <div class="row">
         <div class="field">
           <label>CPF</label>
@@ -485,6 +599,7 @@
         <button class="btn ghost" id="btnImportOpos">Importar lote</button>
         <span class="save-msg" id="msgOpos"></span>
       </div>
+      </div>
     </div>
 
     <div class="card">
@@ -492,12 +607,73 @@
         <h2 style="margin:0;">Cartas registradas</h2>
         <span class="count-pill" id="countOpos">0 registros</span>
       </div>
+      <div class="search-filter">
+        <div class="search-box">
+          <input id="oBusca" type="text" placeholder="Pesquisar por CPF, nome ou ano...">
+        </div>
+      </div>
       <div class="table-wrap"><table id="tblOpos"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="panel" id="tab-associados">
+    <div class="card collapsible" id="cardCadastroAssociado">
+      <div class="section-toolbar">
+        <div>
+          <h2>Cadastro de associados</h2>
+          <p class="hint" style="margin:3px 0 0;">
+            A Anuidade Sindical somente será calculada para colaboradores cadastrados aqui
+            e vinculados ao respectivo sindicato. Este cadastro não interfere no Desconto Sindical.
+          </p>
+        </div>
+        <button class="collapse-btn" type="button" id="btnMinAssociado">− Minimizar</button>
+      </div>
+
+      <div class="card-body" id="bodyCadastroAssociado">
+      <div class="row">
+        <div class="field">
+          <label>CPF</label>
+          <input type="text" id="aCpf" placeholder="000.000.000-00">
+        </div>
+        <div class="field grow">
+          <label>Nome (opcional)</label>
+          <input type="text" id="aNome" placeholder="Nome do colaborador">
+        </div>
+        <div class="field grow">
+          <label>Sindicato</label>
+          <input type="text" id="aSindicato" list="listaSindicatos" placeholder="Sindicato ao qual é associado">
+        </div>
+        <button class="btn gold" id="btnAddAssociado">Cadastrar associado</button>
+      </div>
+
+      <div class="field" style="margin-top:12px;">
+        <label>Importar em lote (CSV: cpf,nome,sindicato)</label>
+        <textarea id="pasteAssociados" placeholder="123.456.789-00,Fulano de Tal,SINPRO"></textarea>
+      </div>
+
+      <div class="row" style="margin-top:10px;">
+        <button class="btn ghost" id="btnImportAssociados">Importar lote</button>
+        <span class="save-msg" id="msgAssociados"></span>
+      </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <h2 style="margin:0;">Associados cadastrados</h2>
+        <span class="count-pill" id="countAssociados">0 registros</span>
+      </div>
+      <div class="search-filter">
+        <div class="search-box">
+          <input id="aBusca" type="text" placeholder="Pesquisar por CPF, nome ou sindicato...">
+        </div>
+      </div>
+      <div class="table-wrap"><table id="tblAssociados"><thead></thead><tbody></tbody></table></div>
     </div>
   </section>
 </main>
 
-<footer class="note">Colaboradores e sindicatos são consultados automaticamente pelo App Web; regras e oposições são salvas automaticamente na planilha.</footer>
+<footer class="note">Colaboradores e sindicatos são consultados automaticamente pelo App Web; regras, associados e oposições são salvos automaticamente na planilha.</footer>
 
 <script>
 (function(){
@@ -510,7 +686,7 @@ const BASE_COLABORADORES_API =
 
 const MESES = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
-const DB = { colaboradores:[], sindicatosBase:[], regras:[], oposicoes:[] };
+const DB = { colaboradores:[], sindicatosBase:[], regras:[], oposicoes:[], associados:[] };
 let ultimoResultado = [];
 let regraEmEdicao = null;
 
@@ -632,10 +808,13 @@ async function postAction(acao, extra){
   return retorno;
 }
 const salvarRegraNaPlanilha    = regra      => postAction('salvarRegra', { regra });
-const excluirRegraDaPlanilha   = sindicato  => postAction('excluirRegra', { sindicato });
+const excluirRegraDaPlanilha   = regra => postAction('excluirRegra', { sindicato: regra.sindicato, tipo: regra.tipo || 'Desconto Sindical' });
 const salvarOposicaoNaPlanilha = oposicao   => postAction('salvarOposicao', { oposicao });
 const salvarOposicoesNaPlanilha= oposicoes  => postAction('salvarOposicoes', { oposicoes });
 const excluirOposicaoDaPlanilha= oposicao   => postAction('excluirOposicao', { cpf: oposicao.cpf, ano: oposicao.ano });
+const salvarAssociadoNaPlanilha = associado => postAction('salvarAssociado', { associado });
+const salvarAssociadosNaPlanilha = associados => postAction('salvarAssociados', { associados });
+const excluirAssociadoDaPlanilha = associado => postAction('excluirAssociado', { cpf: associado.cpf, sindicato: associado.sindicato });
 
 async function loadBasesFromApi(){
   const btn = document.getElementById('btnRefreshAll');
@@ -650,9 +829,11 @@ async function loadBasesFromApi(){
     DB.sindicatosBase = importSindicatosBase(normalizeApiPayload(payload?.sindicatos ?? []));
     DB.regras         = importRegrasFromApi(normalizeApiPayload(payload?.regras ?? []));
     DB.oposicoes      = importOposFromApi(normalizeApiPayload(payload?.oposicoes ?? []));
+    DB.associados     = importAssociadosFromApi(normalizeApiPayload(payload?.associados ?? []));
 
     renderRegras();
     renderOpos();
+    renderAssociados();
     refreshSelectors();
     recalcular();
   } catch(e) {
@@ -729,37 +910,298 @@ function importSindicatosBase(rows){
 }
 
 function importRegrasFromApi(rows){
+
   if(!rows || rows.length < 2) return [];
+
+  // ======================================================
+  // CABEÇALHOS DA PLANILHA
+  // ======================================================
+
   const headers = rows[0].map(normalizeHeader);
-  const iSindicato = findCol(headers, ['sindicato']);
-  const iPercentual = findCol(headers, ['percentual','percentualdesconto','aliquota']);
-  const iParcelas = findCol(headers, ['parcelas','quantidadeparcelas']);
-  const iMeses = findCol(headers, ['meses','mesesdesconto','mes','mesinicial','mesdesconto']);
-  const iLimite = findCol(headers, ['limite','valorlimite','valorlimitedesconto']);
+
+  // ======================================================
+  // LOCALIZA COLUNAS
+  // ======================================================
+
+  const iSindicato = findCol(headers, [
+    'sindicato'
+  ]);
+
+  const iTipo = findCol(headers, [
+    'tipo',
+    'tiporegra',
+    'tipoderegra',
+    'modalidade',
+    'tipodesconto'
+  ]);
+
+  const iPercentual = findCol(headers, [
+    'percentual',
+    'percentualdesconto',
+    'aliquota'
+  ]);
+
+  const iParcelas = findCol(headers, [
+    'parcelas',
+    'quantidadeparcelas'
+  ]);
+
+  const iMeses = findCol(headers, [
+    'meses',
+    'mesesdesconto',
+    'mes',
+    'mesinicial',
+    'mesdesconto'
+  ]);
+
+  const iLimite = findCol(headers, [
+    'limite',
+    'valorlimite',
+    'valorlimitedesconto'
+  ]);
+
+  // ======================================================
+  // CONTRIBUIÇÃO SINDICAL JUNTO?
+  //
+  // O cabeçalho "Contribuição junto?" é normalizado para
+  // "contribuicaojunto".
+  // ======================================================
+
+  const iContribuicao = findCol(headers, [
+    'contribuicaojunto',
+    'contribuicaojunto?',
+    'contribuicaosindicaltambem',
+    'contribuicaosindicaltambem?',
+    'descontacontribuicaosindicaltambem',
+    'descontacontribuicaosindicaltambem?',
+    'descontacontribuicaosindical',
+    'contribuicaosindical',
+    'permitirdescontosindical',
+    'descontarsindicaltambem'
+  ]);
+
+  console.log(
+    'Cabeçalhos recebidos da planilha:',
+    headers
+  );
+
+  console.log(
+    'Índice da coluna Contribuição junto?:',
+    iContribuicao
+  );
+
+  // ======================================================
+  // MONTA REGRAS
+  // ======================================================
 
   const out = [];
-  for(let i=1;i<rows.length;i++){
+
+  for(let i = 1; i < rows.length; i++){
+
     const r = rows[i];
-    const sindicato = cell(r, iSindicato);
+
+    // ----------------------------------------------------
+    // Sindicato
+    // ----------------------------------------------------
+
+    const sindicato = String(
+      cell(r, iSindicato) || ''
+    ).trim();
+
     if(!sindicato) continue;
 
-    const percentual = parseNumber(cell(r, iPercentual));
-    const parcelas = parseInt(cell(r, iParcelas)) || 1;
-    const limiteRaw = cell(r, iLimite);
-    const limite = limiteRaw === '' ? null : parseNumber(limiteRaw);
+    // ----------------------------------------------------
+    // Tipo
+    // ----------------------------------------------------
 
-    // Aceita "2,6,12" / "2;6;12" / "[2,6,12]" ou a coluna antiga "Mes" com um único valor.
-    let meses = String(cell(r, iMeses) || '')
-      .replace(/[\[\]]/g,'')
-      .split(/[;,|]/)
-      .map(v => parseInt(v.trim(),10))
-      .filter(v => v >= 1 && v <= 12);
-    if(!meses.length) meses = [1];
-    meses = [...new Set(meses)];
+    let tipo = String(
+      iTipo >= 0
+        ? cell(r, iTipo)
+        : ''
+    ).trim();
 
-    out.push({ sindicato, percentual, parcelas, meses, mes: meses[0], limite });
+    const tipoNormalizado =
+      stripAccentsLower(tipo);
+
+    if(
+      tipoNormalizado === 'anuidade sindical'
+    ){
+
+      tipo = 'Anuidade Sindical';
+
+    }else if(
+      tipoNormalizado === 'desconto sindical'
+    ){
+
+      tipo = 'Desconto Sindical';
+
+    }else if(!tipo){
+
+      tipo = 'Desconto Sindical';
+
+    }else{
+
+      tipo = tipo.trim();
+
+    }
+
+    // ----------------------------------------------------
+    // Percentual
+    // ----------------------------------------------------
+
+    const percentual =
+      parseNumber(
+        cell(r, iPercentual)
+      );
+
+    // ----------------------------------------------------
+    // Limite
+    // ----------------------------------------------------
+
+    const limiteRaw =
+      cell(r, iLimite);
+
+    const limite =
+      limiteRaw === '' ||
+      limiteRaw === null ||
+      limiteRaw === undefined
+        ? null
+        : parseNumber(limiteRaw);
+
+    // ====================================================
+    // CONTRIBUIÇÃO SINDICAL TAMBÉM
+    // ====================================================
+
+    let contribuicaoSindicalTambem = 'Sim';
+
+    if(iContribuicao >= 0){
+
+      const valorContribuicao =
+        String(
+          cell(r, iContribuicao) || ''
+        ).trim();
+
+      const valorNormalizado =
+        stripAccentsLower(
+          valorContribuicao
+        );
+
+      if(
+        valorNormalizado === 'nao'
+      ){
+
+        contribuicaoSindicalTambem = 'Não';
+
+      }else if(
+        valorNormalizado === 'sim'
+      ){
+
+        contribuicaoSindicalTambem = 'Sim';
+
+      }
+
+    }
+
+    // ====================================================
+    // PARCELAS / MESES
+    // ====================================================
+
+    let parcelas = '';
+    let meses = [];
+
+    if(
+      tipo === 'Anuidade Sindical'
+    ){
+
+      parcelas = '';
+      meses = [];
+
+    }else{
+
+      parcelas =
+        parseInt(
+          cell(r, iParcelas),
+          10
+        ) || 1;
+
+      meses =
+        String(
+          cell(r, iMeses) || ''
+        )
+        .replace(/[\[\]]/g,'')
+        .split(/[;,|]/)
+        .map(
+          v => parseInt(
+            v.trim(),
+            10
+          )
+        )
+        .filter(
+          v =>
+            v >= 1 &&
+            v <= 12
+        );
+
+      meses = [
+        ...new Set(meses)
+      ];
+
+      // Compatibilidade com regra antiga
+      if(!meses.length){
+
+        const mesAntigo =
+          parseInt(
+            cell(r, iMeses),
+            10
+          );
+
+        if(
+          Number.isFinite(mesAntigo) &&
+          mesAntigo >= 1 &&
+          mesAntigo <= 12
+        ){
+
+          meses = [
+            mesAntigo
+          ];
+
+        }
+
+      }
+
+    }
+
+    // ====================================================
+    // OBJETO FINAL
+    // ====================================================
+
+    out.push({
+
+      sindicato,
+
+      tipo,
+
+      percentual,
+
+      parcelas,
+
+      meses,
+
+      mes:
+        meses.length
+          ? meses[0]
+          : '',
+
+      limite,
+
+      contribuicaoSindicalTambem
+
+    });
+
   }
+
   return out;
+
 }
 
 function importOposFromApi(rows){
@@ -777,6 +1219,26 @@ function importOposFromApi(rows){
     const ano = cell(r, iAno);
     if(!cpf || !ano) continue;
     out.push({ cpf, nome, ano });
+  }
+  return out;
+}
+
+
+function importAssociadosFromApi(rows){
+  if(!rows || rows.length < 2) return [];
+  const headers = rows[0].map(normalizeHeader);
+  const iCpf = findCol(headers, ['cpf']);
+  const iNome = findCol(headers, ['nome','colaborador']);
+  const iSindicato = findCol(headers, ['sindicato']);
+
+  const out = [];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
+    const cpf = cell(r, iCpf);
+    const nome = cell(r, iNome);
+    const sindicato = cell(r, iSindicato);
+    if(!cpf || !sindicato) continue;
+    out.push({ cpf, nome, sindicato });
   }
   return out;
 }
@@ -860,14 +1322,16 @@ function renderRegras(){
   document.getElementById('countRegras').textContent = DB.regras.length + ' regras';
   renderTable(
     document.getElementById('tblRegras'),
-    ['Sindicato','Percentual','Parcelas','Meses do desconto','Valor limite','Ações'],
+    ['Sindicato','Tipo','Percentual','Parcelas','Meses do desconto','Valor limite','Contribuição junto?','Ações'],
     DB.regras,
     (r,i) => `<tr>
       <td>${escapeHtml(r.sindicato)}</td>
+      <td>${escapeHtml(r.tipo || 'Desconto Sindical')}</td>
       <td>${r.percentual}%</td>
-      <td>${r.parcelas}</td>
-      <td>${mesesTexto(r.meses || (r.mes ? [r.mes] : []))}</td>
+      <td>${stripAccentsLower(r.tipo) === 'anuidade sindical' ? '—' : r.parcelas}</td>
+      <td>${stripAccentsLower(r.tipo) === 'anuidade sindical' ? 'Mensal' : mesesTexto(r.meses || (r.mes ? [r.mes] : []))}</td>
       <td>${r.limite !== null && r.limite !== undefined ? fmtMoney(r.limite) : '—'}</td>
+      <td>${stripAccentsLower(r.tipo) === 'anuidade sindical' ? (r.contribuicaoSindicalTambem || 'Sim') : '—'}</td>
       <td class="actions-cell">
         <button class="btn ghost small" data-action="edit-regra" data-index="${i}">Editar</button>
         <button class="btn ghost small danger" data-action="del-regra" data-index="${i}">Excluir</button>
@@ -883,10 +1347,14 @@ function editarRegra(i){
   regraEmEdicao = i;
 
   document.getElementById('rSindicato').value = r.sindicato || '';
+  document.getElementById('rTipo').value = r.tipo || 'Desconto Sindical';
   document.getElementById('rPercentual').value = r.percentual ?? '';
   document.getElementById('rParcelas').value = r.parcelas ?? 1;
   document.getElementById('rLimite').value = r.limite !== null && r.limite !== undefined ? r.limite : '';
-  setMesesSelecionados(r.meses && r.meses.length ? r.meses : [Number(r.mes) || 1]);
+  document.getElementById('rContribuicao').value = r.contribuicaoSindicalTambem || 'Sim';
+
+  setMesesSelecionados(r.tipo === 'Anuidade Sindical' ? [] : (r.meses && r.meses.length ? r.meses : [Number(r.mes) || 1]));
+  atualizarCamposTipoRegra();
 
   document.getElementById('btnAddRegra').textContent = 'Atualizar regra';
   document.getElementById('btnCancelRegra').style.display = 'inline-flex';
@@ -897,28 +1365,105 @@ function cancelarEdicaoRegra(){
   regraEmEdicao = null;
   fecharSeletorMeses();
   document.getElementById('rSindicato').value = '';
+  document.getElementById('rTipo').value = 'Desconto Sindical';
   document.getElementById('rPercentual').value = '';
   document.getElementById('rParcelas').value = 1;
   document.getElementById('rLimite').value = '';
+  document.getElementById('rContribuicao').value = 'Sim';
   setMesesSelecionados([]);
+  atualizarCamposTipoRegra();
   document.getElementById('btnAddRegra').textContent = 'Salvar regra';
   document.getElementById('btnCancelRegra').style.display = 'none';
 }
 
+function atualizarCamposTipoRegra(){
+  const tipoEl = document.getElementById('rTipo');
+  const form = document.querySelector('.rules-form');
+  const parcelasField = document.getElementById('rParcelasField');
+  const mesesField = document.getElementById('rMesesField');
+  const parcelasInput = document.getElementById('rParcelas');
+  const hint = document.getElementById('rMesesHint');
+  const contribuicaoField = document.getElementById('rContribuicaoField');
+
+  if(!tipoEl || !form) return;
+
+  const anuidade = tipoEl.value === 'Anuidade Sindical';
+
+  if(contribuicaoField){
+    contribuicaoField.hidden = !anuidade;
+    contribuicaoField.style.display = anuidade ? 'flex' : 'none';
+  }
+
+  // Alterna a classe no formulário para garantir que os elementos
+  // realmente desapareçam da interface.
+  form.classList.toggle('anuidade-mode', anuidade);
+
+  if(parcelasField) parcelasField.hidden = anuidade;
+  if(mesesField) mesesField.hidden = anuidade;
+
+  if(parcelasInput){
+    parcelasInput.disabled = anuidade;
+    if(anuidade) parcelasInput.value = '';
+  }
+
+  if(anuidade){
+    setMesesSelecionados([]);
+    if(hint){
+      hint.textContent = 'Anuidade Sindical: desconto mensal. Não utiliza parcelas ou meses específicos.';
+    }
+  }else{
+    if(hint){
+      hint.textContent = 'Escolha os meses em que cada parcela será descontada.';
+    }
+  }
+}
+
+// ======================================================
+// EXCLUIR REGRA
+// ======================================================
 async function excluirRegra(i){
   const regra = DB.regras[i];
   if(!regra) return;
-  if(!confirm(`Excluir a regra do sindicato "${regra.sindicato}"?`)) return;
+
+  const tipo = regra.tipo || 'Desconto Sindical';
+
+  if(!confirm(
+    `Excluir a regra de ${tipo} do sindicato "${regra.sindicato}"?`
+  )) return;
 
   try{
-    await excluirRegraDaPlanilha(regra.sindicato);
-    DB.regras.splice(i,1);
-    if(regraEmEdicao === i) cancelarEdicaoRegra();
+    const btns = document.querySelectorAll(
+      `#tblRegras button[data-action="del-regra"]`
+    );
+
+    btns.forEach(b => b.disabled = true);
+
+    await excluirRegraDaPlanilha({
+      sindicato: regra.sindicato,
+      tipo: tipo
+    });
+
+    // Remove somente a regra excluída da memória.
+    // Sindicato + Tipo identificam a regra.
+    DB.regras.splice(i, 1);
+
     renderRegras();
+    refreshSelectors();
     recalcular();
+
   }catch(e){
-    console.error(e);
-    alert('Não foi possível excluir a regra na planilha.\n\n' + e.message);
+    console.error('Erro ao excluir regra:', e);
+
+    alert(
+      'Não foi possível excluir a regra na planilha.\\n\\n' +
+      e.message
+    );
+  }finally{
+    document
+      .querySelectorAll(
+        `#tblRegras button[data-action="del-regra"]`
+      )
+      .forEach(b => b.disabled = false);
   }
 }
 
@@ -926,13 +1471,23 @@ async function excluirRegra(i){
 // OPOSIÇÕES: RENDER + AÇÕES
 // ======================================================
 function renderOpos(){
-  document.getElementById('countOpos').textContent = DB.oposicoes.length + ' registros';
+  const busca = (document.getElementById('oBusca')?.value || '').trim().toLowerCase();
+  const filtradas = DB.oposicoes
+    .map((o,index)=>({o,index}))
+    .filter(({o})=>{
+      if(!busca) return true;
+      return [o.cpf,o.nome,o.ano].join(' ').toLowerCase().includes(busca);
+    });
+
+  document.getElementById('countOpos').textContent =
+    filtradas.length + ' de ' + DB.oposicoes.length + ' registros';
+
   renderTable(document.getElementById('tblOpos'),
     ['CPF','Nome','Ano','Ações'],
-    DB.oposicoes,
-    (o,i) => `<tr>
+    filtradas,
+    ({o,index}) => `<tr>
       <td>${escapeHtml(o.cpf)}</td><td>${escapeHtml(o.nome)||'—'}</td><td>${escapeHtml(o.ano)}</td>
-      <td class="actions-cell"><button class="btn ghost small danger" data-action="del-opos" data-index="${i}">Excluir</button></td>
+      <td class="actions-cell"><button class="btn ghost small danger" data-action="del-opos" data-index="${index}">Excluir</button></td>
     </tr>`
   );
 }
@@ -961,6 +1516,7 @@ function refreshSelectors(){
   DB.colaboradores.forEach(c => c.sindicato && sindicatosSet.add(c.sindicato));
   DB.sindicatosBase.forEach(s => s.sindicato && sindicatosSet.add(s.sindicato));
   DB.regras.forEach(r => r.sindicato && sindicatosSet.add(r.sindicato));
+  DB.associados.forEach(a => a.sindicato && sindicatosSet.add(a.sindicato));
 
   document.getElementById('listaSindicatos').innerHTML =
     [...sindicatosSet].sort().map(s=>`<option value="${escapeHtml(s)}">`).join('');
@@ -973,6 +1529,49 @@ function refreshSelectors(){
     '<option value="">Todos</option>' + [...sindicatosSet].sort().map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
 }
 
+function renderAssociados(){
+  const busca = (document.getElementById('aBusca')?.value || '').trim().toLowerCase();
+  const filtrados = DB.associados
+    .map((a,index)=>({a,index}))
+    .filter(({a})=>{
+      if(!busca) return true;
+      return [a.cpf,a.nome,a.sindicato].join(' ').toLowerCase().includes(busca);
+    });
+
+  document.getElementById('countAssociados').textContent =
+    filtrados.length + ' de ' + DB.associados.length + ' registros';
+
+  renderTable(
+    document.getElementById('tblAssociados'),
+    ['CPF','Nome','Sindicato','Ações'],
+    filtrados,
+    ({a,index}) => `<tr>
+      <td>${escapeHtml(a.cpf)}</td>
+      <td>${escapeHtml(a.nome) || '—'}</td>
+      <td>${escapeHtml(a.sindicato)}</td>
+      <td class="actions-cell">
+        <button class="btn ghost small danger" data-action="del-associado" data-index="${index}">Excluir</button>
+      </td>
+    </tr>`
+  );
+}
+
+async function excluirAssociado(i){
+  const associado = DB.associados[i];
+  if(!associado) return;
+  if(!confirm(`Excluir o associado ${associado.cpf} do sindicato "${associado.sindicato}"?`)) return;
+
+  try{
+    await excluirAssociadoDaPlanilha(associado);
+    DB.associados.splice(i,1);
+    renderAssociados();
+    recalcular();
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível excluir o associado na planilha.\n\n' + e.message);
+  }
+}
+
 // ======================================================
 // CÁLCULO
 // ======================================================
@@ -980,8 +1579,16 @@ function computeResultados(ano){
   const oposSet = new Set(
     DB.oposicoes.filter(o => String(o.ano) === String(ano)).map(o => normCPF(o.cpf))
   );
-  const regraBySind = {};
-  DB.regras.forEach(r => { regraBySind[stripAccentsLower(r.sindicato)] = r; });
+
+  const regraByKey = {};
+  DB.regras.forEach(r => {
+    const tipo = r.tipo || 'Desconto Sindical';
+    regraByKey[stripAccentsLower(r.sindicato) + '|' + stripAccentsLower(tipo)] = r;
+  });
+
+  const associadoSet = new Set(
+    DB.associados.map(a => normCPF(a.cpf) + '|' + stripAccentsLower(a.sindicato))
+  );
 
   const baseLookup = {};
   DB.sindicatosBase.forEach(s => {
@@ -992,42 +1599,186 @@ function computeResultados(ano){
 
   return DB.colaboradores.map(c => {
     let sindicato = (c.sindicato || '').trim();
+
     if(!sindicato){
-      sindicato = baseLookup[stripAccentsLower(c.unidade) + '|' + stripAccentsLower(c.funcao)] || '';
+      sindicato =
+        baseLookup[stripAccentsLower(c.unidade) + '|' + stripAccentsLower(c.funcao)] || '';
     }
 
     const cpfKey = normCPF(c.cpf);
-    let status = 'A descontar', percentual = 0, parcelas = 1, meses = [], limite = null, valorTotal = 0, valorParcela = 0;
+    const associado =
+      !!cpfKey &&
+      associadoSet.has(cpfKey + '|' + stripAccentsLower(sindicato));
+
+    // Regra de anuidade define se o associado também pode ter
+    // o desconto sindical no mesmo mês.
+    const regraAnuidade = sindicato
+      ? regraByKey[stripAccentsLower(sindicato) + '|anuidade sindical']
+      : null;
+
+    const anuidadePermiteDescontoSindical =
+      !associado ||
+      !regraAnuidade ||
+      stripAccentsLower(regraAnuidade.contribuicaoSindicalTambem || 'Sim') !== 'nao';
+
+    // ======================================================
+    // DESCONTO SINDICAL
+    // O valor exibido é o valor de CADA PARCELA.
+    // ======================================================
+    let descontoStatus = 'A descontar';
+    let descontoPercentual = 0;
+    let descontoParcelas = 1;
+    let descontoMeses = [];
+    let descontoLimite = null;
+    let descontoValorTotal = 0;
+    let descontoValorParcela = 0;
 
     if(!sindicato){
-      status = 'Sindicato não identificado';
-    } else if(cpfKey && oposSet.has(cpfKey)){
-      status = 'Isento (carta de oposição)';
-    } else {
-      const regra = regraBySind[stripAccentsLower(sindicato)];
-      if(!regra){
-        status = 'Regra não cadastrada';
-      } else {
-        percentual = Number(regra.percentual) || 0;
-        parcelas = Number(regra.parcelas) || 1;
-        meses = (regra.meses && regra.meses.length)
-          ? [...new Set(regra.meses.map(Number))].filter(m => m >= 1 && m <= 12).sort((a,b) => a-b)
-          : [Number(regra.mes) || 1];
-        limite = (regra.limite !== null && regra.limite !== undefined && regra.limite !== '') ? Number(regra.limite) : null;
+      descontoStatus = 'Sindicato não identificado';
 
-        // O desconto só é aplicado no(s) mês(es) explicitamente cadastrado(s) na regra.
-        if(!meses.includes(mesAtual)){
-          status = 'Fora do período de desconto';
+    } else if(associado && !anuidadePermiteDescontoSindical){
+      descontoStatus = 'Dispensado por ser associado';
+
+    } else if(cpfKey && oposSet.has(cpfKey)){
+      descontoStatus = 'Isento (carta de oposição)';
+
+    } else {
+      const regra = regraByKey[
+        stripAccentsLower(sindicato) + '|desconto sindical'
+      ];
+
+      if(!regra){
+        descontoStatus = 'Regra não cadastrada';
+
+      } else {
+        descontoPercentual = Number(regra.percentual) || 0;
+        descontoParcelas = Number(regra.parcelas) || 1;
+
+        descontoMeses = (regra.meses && regra.meses.length)
+          ? [...new Set(regra.meses.map(Number))]
+              .filter(m => m >= 1 && m <= 12)
+              .sort((a,b) => a-b)
+          : [Number(regra.mes) || 1];
+
+        descontoLimite =
+          (regra.limite !== null &&
+           regra.limite !== undefined &&
+           regra.limite !== '')
+            ? Number(regra.limite)
+            : null;
+
+        if(descontoMeses.includes(mesAtual)){
+          descontoValorTotal =
+            (Number(c.salario) || 0) * descontoPercentual / 100;
+
+          if(descontoLimite !== null &&
+             descontoValorTotal > descontoLimite){
+            descontoValorTotal = descontoLimite;
+          }
+
+          descontoValorParcela =
+            descontoValorTotal / descontoParcelas;
         } else {
-          valorTotal = c.salario * percentual / 100;
-          if(limite !== null && valorTotal > limite) valorTotal = limite;
-          valorParcela = valorTotal / parcelas;
+          descontoStatus = 'Fora do período de desconto';
         }
       }
     }
 
-    return { ...c, sindicatoResolvido: sindicato, status, percentual, parcelas, meses,
-      mesesTexto: mesesTexto(meses), limite, valorTotal, valorParcela };
+    // ======================================================
+    // ANUIDADE SINDICAL
+    // É um desconto MENSAL FIXO.
+    // Só incide sobre associados.
+    // O limite é aplicado ao valor mensal.
+    // ======================================================
+    let anuidadeStatus = 'Não associado';
+    let anuidadePercentual = 0;
+    let anuidadeLimite = null;
+    let anuidadeValor = 0;
+
+    if(sindicato && associado){
+
+      if(!regraAnuidade){
+        anuidadeStatus = 'Regra de anuidade não cadastrada';
+
+      } else {
+        anuidadePercentual = Number(regraAnuidade.percentual) || 0;
+
+        anuidadeLimite =
+          (regraAnuidade.limite !== null &&
+           regraAnuidade.limite !== undefined &&
+           regraAnuidade.limite !== '')
+            ? Number(regraAnuidade.limite)
+            : null;
+
+        anuidadeValor =
+          (Number(c.salario) || 0) * anuidadePercentual / 100;
+
+        // A anuidade é mensal e nunca pode ultrapassar
+        // o limite informado na regra.
+        if(anuidadeLimite !== null &&
+           anuidadeValor > anuidadeLimite){
+          anuidadeValor = anuidadeLimite;
+        }
+
+        anuidadeStatus = 'A descontar';
+      }
+    }
+
+    const valorTotalGeral =
+      descontoValorParcela + anuidadeValor;
+
+    return {
+      ...c,
+
+      sindicatoResolvido: sindicato,
+      associado,
+
+      // Desconto Sindical
+      descontoStatus,
+      descontoPercentual,
+      descontoParcelas,
+      descontoMeses,
+      descontoMesesTexto: mesesTexto(descontoMeses),
+      descontoLimite,
+      descontoValorTotal,
+      descontoValorParcela,
+
+      // Anuidade Sindical
+      anuidadeStatus,
+      anuidadePercentual,
+      anuidadeLimite,
+      anuidadeValor,
+      anuidadePermiteDescontoSindical,
+      contribuicaoSindicalTambem: regraAnuidade ? (regraAnuidade.contribuicaoSindicalTambem || 'Sim') : 'Sim',
+
+      // Status consolidado para a coluna "Status do desconto".
+      // O status passa a considerar tanto o Desconto Sindical
+      // quanto a Anuidade Sindical.
+      statusGeral:
+        descontoStatus === 'A descontar' && anuidadeStatus === 'A descontar'
+          ? 'A descontar (Desconto Sindical + Anuidade Sindical)'
+          : descontoStatus === 'A descontar'
+            ? 'A descontar (Desconto Sindical)'
+            : anuidadeStatus === 'A descontar'
+              ? 'A descontar (Anuidade Sindical)'
+              : descontoStatus !== 'Regra não cadastrada'
+                ? descontoStatus
+                : anuidadeStatus,
+
+      // Compatibilidade
+      status: descontoStatus,
+      percentual: descontoPercentual,
+      parcelas: descontoParcelas,
+      meses: descontoMeses,
+      mesesTexto: mesesTexto(descontoMeses),
+      limite: descontoLimite,
+
+      // Valor principal do desconto agora é o valor da parcela
+      valorTotal: descontoValorParcela,
+      valorParcela: descontoValorParcela,
+
+      valorTotalGeral
+    };
   });
 }
 
@@ -1045,9 +1796,21 @@ function filtrarResultados(){
   return ultimoResultado.filter(r=>{
     if(filtroUnidade && r.unidade !== filtroUnidade) return false;
     if(filtroSindicato && r.sindicatoResolvido !== filtroSindicato) return false;
-    if(filtroStatus && r.status !== filtroStatus) return false;
+    if(filtroStatus){
+      const statusCompativel =
+        r.status === filtroStatus ||
+        r.anuidadeStatus === filtroStatus ||
+        (filtroStatus === 'A descontar' &&
+          (r.descontoStatus === 'A descontar' || r.anuidadeStatus === 'A descontar'));
+
+      if(!statusCompativel) return false;
+    }
     if(busca){
-      const texto = [r.unidade, r.colaborador, r.cpf, r.funcao, r.cargo, r.sindicatoResolvido, r.status]
+      const texto = [
+        r.unidade, r.colaborador, r.cpf, r.funcao, r.cargo,
+        r.sindicatoResolvido, r.status, r.statusGeral,
+        r.anuidadeStatus, r.associado ? 'associado' : 'não associado'
+      ]
         .join(' ').toLowerCase();
       if(!texto.includes(busca)) return false;
     }
@@ -1060,33 +1823,67 @@ function renderCalculo(){
   document.getElementById('countCalc').textContent = data.length + ' registros';
 
   const badgeClass = s =>
-    s === 'A descontar' ? 'ok' :
+    s && s.includes('A descontar') ? 'ok' :
     s === 'Isento (carta de oposição)' ? 'isento' : 'erro';
 
-  renderTable(document.getElementById('tblCalc'),
-    ['Unidade','Colaborador','CPF','Função','Sindicato','Salário','%','Valor total','Parcelas','Valor/parcela','Mês(es)','Status'],
+  renderTable(
+    document.getElementById('tblCalc'),
+    [
+      'Unidade',
+      'Colaborador',
+      'CPF',
+      'Função',
+      'Sindicato',
+      'Salário',
+      'Associado?',
+      '%',
+      'Qtd. parcelas',
+      'Desconto Sindical',
+      'Anuidade Sindical',
+      'Total',
+      'Status do desconto'
+    ],
     data,
     r => `<tr>
-      <td>${escapeHtml(r.unidade)}</td><td>${escapeHtml(r.colaborador)}</td><td>${escapeHtml(r.cpf)}</td><td>${escapeHtml(r.funcao)}</td>
-      <td>${escapeHtml(r.sindicatoResolvido) || '—'}</td><td>${fmtMoney(r.salario)}</td>
-      <td>${r.percentual || '—'}${r.percentual? '%':''}</td>
-      <td>${r.valorTotal ? fmtMoney(r.valorTotal) : '—'}</td>
-      <td>${r.status==='A descontar' ? r.parcelas : '—'}</td>
-      <td>${r.valorParcela ? fmtMoney(r.valorParcela) : '—'}</td>
-      <td>${r.mesesTexto}</td>
-      <td><span class="badge ${badgeClass(r.status)}">${escapeHtml(r.status)}</span></td>
+      <td>${escapeHtml(r.unidade)}</td>
+      <td>${escapeHtml(r.colaborador)}</td>
+      <td>${escapeHtml(r.cpf)}</td>
+      <td>${escapeHtml(r.funcao)}</td>
+      <td>${escapeHtml(r.sindicatoResolvido) || '—'}</td>
+      <td>${fmtMoney(r.salario)}</td>
+      <td>${r.associado
+  ? '<span class="badge associado">Sim</span>'
+  : '<span class="badge nao-associado">Não</span>'}</td>
+      <td>${r.descontoPercentual ? r.descontoPercentual + '%' : '—'}</td>
+      <td>${r.descontoStatus === 'A descontar' ? r.descontoParcelas : '—'}</td>
+      <td><strong>${r.descontoValorParcela ? fmtMoney(r.descontoValorParcela) : '—'}</strong></td>
+      <td><strong>${r.anuidadeValor ? fmtMoney(r.anuidadeValor) : '—'}</strong></td>
+      <td><strong>${r.valorTotalGeral ? fmtMoney(r.valorTotalGeral) : '—'}</strong></td>
+      <td><span class="badge ${badgeClass(r.statusGeral)}">${escapeHtml(r.statusGeral || r.descontoStatus)}</span></td>
     </tr>`
   );
 
   document.getElementById('stTotal').textContent = data.length;
-  document.getElementById('stDesconto').textContent = data.filter(r=>r.status==='A descontar').length;
-  document.getElementById('stIsentos').textContent = data.filter(r=>r.status==='Isento (carta de oposição)').length;
-  document.getElementById('stPendentes').textContent = data.filter(r =>
-    r.status === 'Regra não cadastrada' ||
-    r.status === 'Sindicato não identificado' ||
-    r.status === 'Fora do período de desconto'
-  ).length;
-  document.getElementById('stValor').textContent = fmtMoney(data.reduce((s,r)=>s+(r.valorTotal||0),0));
+
+  document.getElementById('stDesconto').textContent =
+    data.filter(r => r.descontoValorParcela > 0 || r.anuidadeValor > 0).length;
+
+  document.getElementById('stIsentos').textContent =
+    data.filter(r => r.descontoStatus === 'Isento (carta de oposição)').length;
+
+  document.getElementById('stPendentes').textContent =
+    data.filter(r =>
+      r.descontoStatus === 'Regra não cadastrada' ||
+      r.descontoStatus === 'Sindicato não identificado' ||
+      r.descontoStatus === 'Fora do período de desconto' ||
+      (r.associado &&
+       r.anuidadeStatus === 'Regra de anuidade não cadastrada')
+    ).length;
+
+  document.getElementById('stValor').textContent =
+    fmtMoney(
+      data.reduce((s,r) => s + (r.valorTotalGeral || 0), 0)
+    );
 }
 
 // ======================================================
@@ -1094,23 +1891,68 @@ function renderCalculo(){
 // ======================================================
 function exportCSV(){
   const data = filtrarResultados();
-  if(!data.length){ alert('Nenhum resultado para exportar. Calcule primeiro.'); return; }
 
-  const headers = ['Unidade','Colaborador','CPF','Cargo','Funcao','Sindicato','Salario','Percentual','ValorTotal','Parcelas','ValorParcela','Meses','Status'];
+  if(!data.length){
+    alert('Nenhum resultado para exportar. Calcule primeiro.');
+    return;
+  }
+
+  const headers = [
+    'Unidade',
+    'Colaborador',
+    'CPF',
+    'Cargo',
+    'Funcao',
+    'Sindicato',
+    'Salario',
+    'Associado',
+    'PercentualDescontoSindical',
+    'QtdParcelas',
+    'DescontoSindical',
+    'AnuidadeSindical',
+    'Total',
+    'StatusDesconto',
+    'StatusAnuidade'
+  ];
+
   const lines = [headers.join(';')];
+
   data.forEach(r=>{
-    lines.push([r.unidade,r.colaborador,r.cpf,r.cargo,r.funcao,r.sindicatoResolvido,
-      r.salario.toFixed(2).replace('.',','),
-      r.percentual, (r.valorTotal||0).toFixed(2).replace('.',','),
-      r.status==='A descontar'?r.parcelas:'', (r.valorParcela||0).toFixed(2).replace('.',','),
-      r.mesesTexto, r.status
-    ].map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(';'));
+    lines.push([
+      r.unidade,
+      r.colaborador,
+      r.cpf,
+      r.cargo,
+      r.funcao,
+      r.sindicatoResolvido,
+      (Number(r.salario) || 0).toFixed(2).replace('.',','),
+      r.associado ? 'Sim' : 'Não',
+      r.descontoPercentual || '',
+      r.descontoStatus === 'A descontar' ? r.descontoParcelas : '',
+      (r.descontoValorParcela || 0).toFixed(2).replace('.',','),
+      (r.anuidadeValor || 0).toFixed(2).replace('.',','),
+      (r.valorTotalGeral || 0).toFixed(2).replace('.',','),
+      r.descontoStatus,
+      r.anuidadeStatus
+    ].map(v =>
+      `"${(v ?? '').toString().replace(/"/g,'""')}"`
+    ).join(';'));
   });
 
-  const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const blob = new Blob(
+    ['\uFEFF' + lines.join('\n')],
+    {type:'text/csv;charset=utf-8;'}
+  );
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = 'desconto-sindical-'+document.getElementById('cAno').value+'.csv';
+
+  a.href = url;
+  a.download =
+    'desconto-sindical-anuidade-' +
+    document.getElementById('cAno').value +
+    '.csv';
+
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -1149,20 +1991,53 @@ document.getElementById('btnRefreshAll').addEventListener('click', loadBasesFrom
 // ======================================================
 document.getElementById('btnAddRegra').addEventListener('click', async ()=>{
   const sindicato = document.getElementById('rSindicato').value.trim();
+  const tipo = document.getElementById('rTipo').value;
   const percentual = parseFloat(document.getElementById('rPercentual').value);
-  const parcelas = parseInt(document.getElementById('rParcelas').value) || 1;
-  const meses = getMesesSelecionados();
   const limiteRaw = document.getElementById('rLimite').value;
   const limite = limiteRaw ? parseFloat(limiteRaw) : null;
+  const contribuicaoSindicalTambem =
+    tipo === 'Anuidade Sindical'
+      ? (document.getElementById('rContribuicao').value || 'Sim')
+      : 'Sim';
 
-  if(!sindicato || isNaN(percentual)){ alert('Informe ao menos o sindicato e o percentual.'); return; }
-  if(!parcelas || parcelas < 1){ alert('Informe uma quantidade de parcelas válida.'); return; }
-  if(meses.length !== parcelas){
-    alert(`Selecione exatamente ${parcelas} ${parcelas === 1 ? 'mês' : 'meses'} para as ${parcelas} ${parcelas === 1 ? 'parcela' : 'parcelas'}.`);
+  if(!sindicato || isNaN(percentual)){
+    alert('Informe sindicato e percentual.');
     return;
   }
 
-  const regra = { sindicato, percentual, parcelas, meses, mes: meses[0], limite };
+  let parcelas = null;
+  let meses = [];
+
+  if(tipo === 'Desconto Sindical'){
+    parcelas = parseInt(document.getElementById('rParcelas').value) || 1;
+    meses = getMesesSelecionados();
+
+    if(!parcelas || parcelas < 1){
+      alert('Informe uma quantidade de parcelas válida.');
+      return;
+    }
+
+    if(meses.length !== parcelas){
+      alert(`Selecione exatamente ${parcelas} ${parcelas === 1 ? 'mês' : 'meses'} para as ${parcelas} ${parcelas === 1 ? 'parcela' : 'parcelas'}.`);
+      return;
+    }
+  } else {
+    // Anuidade Sindical não possui parcelas nem meses.
+    parcelas = null;
+    meses = [];
+  }
+
+  const regra = {
+    sindicato,
+    tipo,
+    percentual,
+    parcelas,
+    meses,
+    mes: tipo === 'Desconto Sindical' ? (meses[0] || null) : null,
+    limite,
+    contribuicaoSindicalTambem
+  };
+
   const btn = document.getElementById('btnAddRegra');
   const textoOriginal = btn.textContent;
 
@@ -1170,14 +2045,23 @@ document.getElementById('btnAddRegra').addEventListener('click', async ()=>{
     btn.disabled = true;
     btn.textContent = regraEmEdicao === null ? 'Salvando...' : 'Atualizando...';
 
-    await salvarRegraNaPlanilha(regra);
+    const retorno = await salvarRegraNaPlanilha(regra);
+
+    // Usa o registro devolvido pelo Apps Script para manter
+    // a interface exatamente igual ao que foi salvo na planilha.
+    const regraSalva = retorno && retorno.regra
+      ? retorno.regra
+      : regra;
 
     if(regraEmEdicao !== null){
-      DB.regras[regraEmEdicao] = regra;
+      DB.regras[regraEmEdicao] = regraSalva;
     }else{
-      const existente = DB.regras.findIndex(r => stripAccentsLower(r.sindicato) === stripAccentsLower(sindicato));
-      if(existente >= 0) DB.regras[existente] = regra;
-      else DB.regras.push(regra);
+      const existente = DB.regras.findIndex(r =>
+        stripAccentsLower(r.sindicato) === stripAccentsLower(sindicato) &&
+        (r.tipo || 'Desconto Sindical') === tipo
+      );
+      if(existente >= 0) DB.regras[existente] = regraSalva;
+      else DB.regras.push(regraSalva);
     }
 
     cancelarEdicaoRegra();
@@ -1192,6 +2076,9 @@ document.getElementById('btnAddRegra').addEventListener('click', async ()=>{
   }
 });
 
+document.getElementById('rTipo').addEventListener('change', atualizarCamposTipoRegra);
+// Garante o estado visual correto já na abertura da página.
+atualizarCamposTipoRegra();
 document.getElementById('btnCancelRegra').addEventListener('click', cancelarEdicaoRegra);
 document.getElementById('rParcelas').addEventListener('input', atualizarEstadoMeses);
 document.querySelectorAll('#rMeses input[type="checkbox"]').forEach(cb => {
@@ -1305,15 +2192,169 @@ document.getElementById('tblOpos').addEventListener('click', e=>{
   excluirOposicao(Number(btn.dataset.index));
 });
 
+
+// ======================================================
+// EVENTOS: ASSOCIADOS
+// ======================================================
+document.getElementById('btnAddAssociado').addEventListener('click', async ()=>{
+  const cpf = document.getElementById('aCpf').value.trim();
+  const nome = document.getElementById('aNome').value.trim();
+  const sindicato = document.getElementById('aSindicato').value.trim();
+
+  if(!cpf || !sindicato){
+    alert('Informe CPF e sindicato.');
+    return;
+  }
+
+  const associado = { cpf, nome, sindicato };
+  const btn = document.getElementById('btnAddAssociado');
+  const textoOriginal = btn.textContent;
+
+  try{
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    await salvarAssociadoNaPlanilha(associado);
+
+    const existente = DB.associados.findIndex(a =>
+      normCPF(a.cpf) === normCPF(cpf) &&
+      stripAccentsLower(a.sindicato) === stripAccentsLower(sindicato)
+    );
+
+    if(existente >= 0) DB.associados[existente] = associado;
+    else DB.associados.push(associado);
+
+    renderAssociados();
+    refreshSelectors();
+    recalcular();
+
+    document.getElementById('aCpf').value = '';
+    document.getElementById('aNome').value = '';
+    document.getElementById('aSindicato').value = '';
+    document.getElementById('msgAssociados').textContent = 'Associado salvo na planilha.';
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível salvar o associado na planilha.\n\n' + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+});
+
+document.getElementById('btnImportAssociados').addEventListener('click', async ()=>{
+  const txt = document.getElementById('pasteAssociados').value;
+  if(!txt.trim()) return;
+
+  const associados = parseCSV(txt)
+    .filter(r => r[0] && r[2])
+    .map(r => ({
+      cpf: r[0].trim(),
+      nome: (r[1]||'').trim(),
+      sindicato: r[2].trim()
+    }));
+
+  if(!associados.length){
+    alert('Nenhum associado válido encontrado.');
+    return;
+  }
+
+  const btn = document.getElementById('btnImportAssociados');
+  const textoOriginal = btn.textContent;
+
+  try{
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    await salvarAssociadosNaPlanilha(associados);
+
+    associados.forEach(associado => {
+      const existente = DB.associados.findIndex(a =>
+        normCPF(a.cpf) === normCPF(associado.cpf) &&
+        stripAccentsLower(a.sindicato) === stripAccentsLower(associado.sindicato)
+      );
+      if(existente >= 0) DB.associados[existente] = associado;
+      else DB.associados.push(associado);
+    });
+
+    renderAssociados();
+    refreshSelectors();
+    recalcular();
+    document.getElementById('msgAssociados').textContent =
+      `${associados.length} registro(s) salvo(s) na planilha.`;
+    document.getElementById('pasteAssociados').value = '';
+  }catch(e){
+    console.error(e);
+    alert('Não foi possível importar os associados para a planilha.\n\n' + e.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = textoOriginal;
+  }
+});
+
+document.getElementById('tblAssociados').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-action="del-associado"]');
+  if(!btn) return;
+  excluirAssociado(Number(btn.dataset.index));
+});
+
+
+// ======================================================
+// EVENTOS: FILTROS E MINIMIZAR CADASTROS
+// ======================================================
+
+function configurarMinimizacao(botaoId, corpoId){
+  const btn = document.getElementById(botaoId);
+  const corpo = document.getElementById(corpoId);
+
+  if(!btn || !corpo) return;
+
+  btn.addEventListener('click', ()=>{
+    const minimizado = corpo.classList.toggle('collapsed');
+
+    btn.textContent =
+      minimizado
+        ? '+ Mostrar cadastro'
+        : '− Minimizar';
+  });
+}
+
+configurarMinimizacao(
+  'btnMinRegra',
+  'bodyCadastroRegra'
+);
+
+configurarMinimizacao(
+  'btnMinOposicao',
+  'bodyCadastroOposicao'
+);
+
+configurarMinimizacao(
+  'btnMinAssociado',
+  'bodyCadastroAssociado'
+);
+
+const oBusca = document.getElementById('oBusca');
+if(oBusca){
+  oBusca.addEventListener('input', renderOpos);
+}
+
+const aBusca = document.getElementById('aBusca');
+if(aBusca){
+  aBusca.addEventListener('input', renderAssociados);
+}
+
+// ======================================================
 // ======================================================
 // INIT
 // ======================================================
 (async function init(){
   renderRegras();
   renderOpos();
+  renderAssociados();
   document.getElementById('headerAno').textContent = document.getElementById('cAno').value;
   cancelarEdicaoRegra();
   atualizarEstadoMeses();
+  atualizarCamposTipoRegra();
   await loadBasesFromApi(); // já dispara o cálculo automaticamente ao final.
 })();
 
